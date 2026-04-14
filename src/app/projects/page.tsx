@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useArchitectureStore } from '@/store/architecture-store';
 import { projectService, ProjectsListResponse } from '@/lib/project-service';
 import Button from '@/components/ui/Button';
@@ -16,7 +16,6 @@ export default function ProjectsPage() {
   const [isCreating, setIsCreating] = useState(false);
 
   const createNewProject = useArchitectureStore((state) => state.createNewProject);
-  const loadProject = useArchitectureStore((state) => state.loadProject);
 
   useEffect(() => {
     loadProjects();
@@ -145,7 +144,7 @@ export default function ProjectsPage() {
                         <p>
                           {project.nodes?.length || 0} nodes • {project.edges?.length || 0} connections
                         </p>
-                        <p>Updated: {new Date(project.updated_at).toLocaleDateString()}</p>
+                        <p>Updated: {new Date(project.updatedAt).toLocaleDateString()}</p>
                       </div>
                     </div>
                     <div className="flex gap-2 pt-4 border-t border-slate-200">

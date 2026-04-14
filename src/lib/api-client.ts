@@ -8,13 +8,6 @@ interface RequestOptions {
   body?: any;
 }
 
-interface ApiResponse<T> {
-  success: boolean;
-  message?: string;
-  data?: T;
-  error?: string;
-}
-
 export class ApiClient {
   private baseUrl: string;
   private token: string | null = null;

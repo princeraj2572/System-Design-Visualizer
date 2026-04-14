@@ -1,8 +1,7 @@
 'use client';
 
-import type { Metadata } from 'next';
 import './globals.css';
-import AuthGuard from '@/components/auth/AuthGuard';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 
 // Note: metadata is not supported in 'use client' components
 // If needed, create a separate server component for metadata

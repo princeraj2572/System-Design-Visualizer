@@ -30,7 +30,7 @@ export const LoginForm = () => {
         // Redirect to projects
         window.location.href = '/projects';
       } else {
-        const user = await authService.register(email, username, password);
+        await authService.register(email, username, password);
         setError('');
         setIsLogin(true);
         setEmail('');
