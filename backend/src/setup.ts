@@ -12,7 +12,7 @@ async function setup(): Promise<void> {
 
     // Test database connection
     logger.info('Testing database connection...');
-    const result = await pool.query('SELECT NOW()');
+    await pool.query('SELECT NOW()');
     logger.info('Database connection successful');
 
     // Run migrations

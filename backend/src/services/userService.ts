@@ -6,7 +6,7 @@ import pool from '@/config/database';
 import { User } from '@/models/types';
 import { ConflictError, NotFoundError } from '@/utils/errors';
 import { v4 as uuidv4 } from 'uuid';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { config } from '@/config';
 

@@ -14,7 +14,7 @@ export interface AuthRequest extends Request {
 
 export const authMiddleware = (
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): void => {
   try {
@@ -41,7 +41,7 @@ export const authMiddleware = (
 
 export const optionalAuthMiddleware = (
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): void => {
   try {

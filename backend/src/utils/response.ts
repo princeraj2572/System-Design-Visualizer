@@ -14,7 +14,7 @@ export interface ApiResponse<T> {
   path?: string;
 }
 
-export const successResponse = <T>(data: T, message?: string): ApiResponse<T> => ({
+export const successResponse = <T>(data: T, _message?: string): ApiResponse<T> => ({
   success: true,
   data,
   timestamp: new Date().toISOString(),
