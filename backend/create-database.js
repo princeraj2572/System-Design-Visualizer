@@ -18,6 +18,7 @@ async function tryConnect(config) {
 
 async function createDatabase() {
   const strategies = [
+    { name: 'Password 7970', config: { host: 'localhost', port: 5432, database: 'postgres', user: 'postgres', password: '7970' } },
     { name: 'Empty password', config: { host: 'localhost', port: 5432, database: 'postgres', user: 'postgres', password: '' } },
     { name: 'No password', config: { host: 'localhost', port: 5432, database: 'postgres', user: 'postgres' } },
   ];
