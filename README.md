@@ -48,15 +48,38 @@ A modern, interactive web application for designing backend system architectures
 ```bash
 cd system-visualizer
 npm install
+
+# Also install backend dependencies
+cd backend
+npm install
+cd ..
 ```
 
 ### Development
 
+The system requires both backend and frontend to run:
+
+**Terminal 1 - Start Backend:**
+```bash
+cd backend
+
+# First time setup only (creates database)
+npm run setup
+
+# Start backend server
+npm run dev
+```
+
+Backend will run on [http://localhost:5000](http://localhost:5000)
+
+**Terminal 2 - Start Frontend:**
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Frontend will run on [http://localhost:3000](http://localhost:3000)
+
+Open [http://localhost:3000](http://localhost:3000) in your browser to access the application.
 
 ### Building for Production
 

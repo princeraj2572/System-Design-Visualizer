@@ -1,34 +1,22 @@
 'use client';
 
-import { useCallback } from 'react';
-import Layout from '@/components/ui/Layout';
-import NodePalette from '@/components/canvas/NodePalette';
-import ArchitectureCanvas from '@/components/canvas/ArchitectureCanvas';
-import PropertiesPanel from '@/components/canvas/PropertiesPanel';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const handleNodeDragStart = useCallback((nodeType: string) => {
-    console.log('Starting drag for node type:', nodeType);
-  }, []);
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to projects page
+    router.push('/projects');
+  }, [router]);
 
   return (
-    <Layout>
-      <div className="flex h-full gap-0">
-        {/* Left Sidebar - Component Palette */}
-        <div className="flex-shrink-0">
-          <NodePalette onNodeDragStart={handleNodeDragStart} />
-        </div>
-
-        {/* Center - Architecture Canvas */}
-        <div className="flex-1">
-          <ArchitectureCanvas />
-        </div>
-
-        {/* Right Sidebar - Properties Panel */}
-        <div className="flex-shrink-0">
-          <PropertiesPanel />
-        </div>
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-cyan-200 border-t-cyan-500 rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-slate-600">Redirecting...</p>
       </div>
-    </Layout>
+    </div>
   );
 }

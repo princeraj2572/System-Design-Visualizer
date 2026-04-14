@@ -1,11 +1,11 @@
+'use client';
+
 import type { Metadata } from 'next';
 import './globals.css';
+import AuthGuard from '@/components/auth/AuthGuard';
 
-export const metadata: Metadata = {
-  title: 'System Design Visualizer',
-  description: 'Visual architecture design tool for microservices and distributed systems',
-  viewport: 'width=device-width, initial-scale=1',
-};
+// Note: metadata is not supported in 'use client' components
+// If needed, create a separate server component for metadata
 
 export default function RootLayout({
   children,
@@ -14,7 +14,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>{children}</body>
+      <body>
+        <AuthGuard>
+          {children}
+        </AuthGuard>
+      </body>
     </html>
   );
 }
