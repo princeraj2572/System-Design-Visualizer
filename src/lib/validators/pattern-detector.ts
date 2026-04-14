@@ -83,7 +83,7 @@ function detectMicroservicesPattern(nodes: any[], _edges: any[]) {
 /**
  * Detect monolithic architecture pattern
  */
-function detectMonolithPattern(nodes: any[], edges: any[]) {
+function detectMonolithPattern(nodes: any[], _edges: any[]) {
   const backendServices = nodes.filter((n) => n.type === 'backend-service');
   const microservices = nodes.filter((n) => n.type === 'microservice');
   const databases = nodes.filter((n) =>
@@ -108,7 +108,7 @@ function detectMonolithPattern(nodes: any[], edges: any[]) {
 /**
  * Detect serverless architecture pattern
  */
-function detectServerlessPattern(nodes: any[], edges: any[]) {
+function detectServerlessPattern(nodes: any[], _edges: any[]) {
   const functions = nodes.filter((n) => n.type === 'lambda');
   const managedServices = nodes.filter((n) =>
     ['managed-service', 'apigateway', 'dynamodb', 's3'].includes(n.type)
@@ -127,7 +127,7 @@ function detectServerlessPattern(nodes: any[], edges: any[]) {
 /**
  * Detect mixed monolith + microservices pattern (anti-pattern)
  */
-function detectMixedPattern(nodes: any[], edges: any[]) {
+function detectMixedPattern(nodes: any[], _edges: any[]) {
   const backendServices = nodes.filter((n) => n.type === 'backend-service');
   const microservices = nodes.filter((n) => n.type === 'microservice');
 
