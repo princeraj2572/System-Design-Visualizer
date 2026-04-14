@@ -18,6 +18,10 @@ import RemoteCursorsOverlay from '@/components/realtime/RemoteCursorsOverlay';
 import { ExportDialog } from '@/components/canvas/ExportDialog';
 import { ImportDialog } from '@/components/canvas/ImportDialog';
 import { AnalyticsPanel } from '@/components/canvas/AnalyticsPanel';
+import { TemplateLibrary } from '@/components/canvas/TemplateLibrary';
+import { AuditLogViewer } from '@/components/canvas/AuditLogViewer';
+import { ComplianceReporter } from '@/components/canvas/ComplianceReporter';
+import { BookOpen, FileText, Shield } from 'lucide-react';
 
 export default function EditorPage() {
   const params = useParams();
@@ -34,6 +38,9 @@ export default function EditorPage() {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+  const [showAuditLog, setShowAuditLog] = useState(false);
+  const [showCompliance, setShowCompliance] = useState(false);
 
   const load = useArchitectureStore((state) => state.load);
   const saveProject = useArchitectureStore((state) => state.saveProject);
@@ -217,6 +224,21 @@ export default function EditorPage() {
 
           <div className="w-px h-6 bg-slate-300" />
 
+          <Button onClick={() => setShowTemplateLibrary(true)} variant="ghost" title="Browse architecture templates">
+            <BookOpen size={16} className="mr-1" />
+            Templates
+          </Button>
+          <Button onClick={() => setShowAuditLog(true)} variant="ghost" title="View audit log">
+            <FileText size={16} className="mr-1" />
+            Audit Log
+          </Button>
+          <Button onClick={() => setShowCompliance(true)} variant="ghost" title="Compliance reports">
+            <Shield size={16} className="mr-1" />
+            Compliance
+          </Button>
+
+          <div className="w-px h-6 bg-slate-300" />
+
           <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Save'}
           </Button>
@@ -354,6 +376,27 @@ export default function EditorPage() {
         projectId={projectId}
         isOpen={showAnalytics}
         onClose={() => setShowAnalytics(false)}
+      />
+
+      {/* Template Library */}
+      <TemplateLibrary
+        isOpen={showTemplateLibrary}
+        onClose={() => setShowTemplateLibrary(false)}
+      />
+
+      {/* Audit Log Viewer */}
+      <AuditLogViewer
+        projectId={projectId}
+        isOpen={showAuditLog}
+        onClose={() => setShowAuditLog(false)}
+      />
+
+      {/* Compliance Reporter */}
+      <ComplianceReporter
+        projectId={projectId}
+        projectName={projectName}
+        isOpen={showCompliance}
+        onClose={() => setShowCompliance(false)}
       />
     </div>
   );
