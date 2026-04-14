@@ -17,7 +17,6 @@ interface ArchitectureNodeData {
 export const ArchitectureNode: React.FC<NodeProps<ArchitectureNodeData>> = ({
   data,
   selected,
-  isConnecting,
 }) => {
   const config = NODE_TYPES[data.type as keyof typeof NODE_TYPES];
   const bgColor = config?.color || '#3b82f6';
@@ -31,7 +30,6 @@ export const ArchitectureNode: React.FC<NodeProps<ArchitectureNodeData>> = ({
             ? 'border-cyan-500 shadow-lg scale-105'
             : 'border-slate-300 shadow-md hover:shadow-lg'
         }
-        ${isConnecting ? 'opacity-50' : 'opacity-100'}
         bg-white
       `}
       style={{
