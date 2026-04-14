@@ -7,6 +7,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import logger from '@/utils/logger';
 import { errorHandler } from '@/middleware/errorHandler';
+import { runMigrations } from '@/migrations';
 import projectRoutes from '@/routes/projectRoutes';
 import userRoutes from '@/routes/userRoutes';
 
@@ -44,26 +45,47 @@ app.use((_req, res) => {
 // Error Handler (must be last)
 app.use(errorHandler);
 
+// Initialize Database
+async function initializeDatabase() {
+  try {
+    logger.info('Initializing database...');
+    await runMigrations();
+    logger.info('Database initialized successfully');
+    return true;
+  } catch (error: any) {
+    logger.error('Database initialization failed:', error.message);
+    logger.warn('Server will start without database');
+    logger.warn('Account creation and project features will not work until database is configured');
+    return false;
+  }
+}
+
 // Start Server
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`, {
-    environment: process.env.NODE_ENV || 'development',
-    timestamp: new Date().toISOString(),
+// Initialize DB then start server
+initializeDatabase().then((success) => {
+  const server = app.listen(PORT, () => {
+    logger.info(`Server running on port ${PORT}`, {
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString(),
+    });
   });
+
+  // Graceful Shutdown
+  const gracefulShutdown = () => {
+    logger.info('Received shutdown signal, closing server gracefully...');
+    server.close(() => {
+      logger.info('Server closed');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', gracefulShutdown);
+  process.on('SIGINT', gracefulShutdown);
+}).catch((error) => {
+  logger.error('Failed to start server:', error);
+  process.exit(1);
 });
-
-// Graceful Shutdown
-const gracefulShutdown = () => {
-  logger.info('Received shutdown signal, closing server gracefully...');
-  server.close(() => {
-    logger.info('Server closed');
-    process.exit(0);
-  });
-};
-
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
 
 export default app;

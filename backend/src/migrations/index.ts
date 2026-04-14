@@ -103,7 +103,21 @@ export async function runMigrations(): Promise<void> {
     }
 
     logger.info('All migrations completed successfully');
-  } catch (error) {
+  } catch (error: any) {
+    // Check if it's an authentication error
+    if (error.code === '28P01' || error.message?.includes('password authentication failed')) {
+      logger.error('Database authentication failed. Please ensure:');
+      logger.error('1. PostgreSQL server is running');
+      logger.error('2. Database credentials in .env are correct');
+      logger.error('3. User "postgres" has a valid password');
+      logger.error('\nTo fix:');
+      logger.error('  - Update DB_USER and DB_PASSWORD in .env');
+      logger.error('  - Or reset postgres password: ALTER USER postgres WITH PASSWORD \'newpassword\';');
+      logger.error('  - Or run psql interactively to set credentials');
+      logger.error('\nAlternatively, for development:');
+      logger.error('  - Configure trust authentication in pg_hba.conf');
+      logger.error('  - Restart PostgreSQL service');
+    }
     logger.error('Migration failed:', error);
     throw error;
   }
