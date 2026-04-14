@@ -154,7 +154,7 @@ export const PATTERNS: Record<string, ArchitecturePattern> = {
     description: 'Multiple independent services communicating via APIs or message queues',
     detectionRules: [
       {
-        matcher: (nodes, edges) => nodes.filter((n) => n.type === 'microservice').length >= 3,
+        matcher: (nodes, _edges) => nodes.filter((n) => n.type === 'microservice').length >= 3,
         confidence: 0.8,
       },
     ],
@@ -177,7 +177,7 @@ export const PATTERNS: Record<string, ArchitecturePattern> = {
     description: 'Single or few tightly-coupled services with shared database',
     detectionRules: [
       {
-        matcher: (nodes, edges) =>
+        matcher: (nodes, _edges) =>
           nodes.filter((n) => n.type === 'backend-service').length === 1 &&
           nodes.filter((n) => n.type === 'microservice').length === 0,
         confidence: 0.9,
@@ -202,7 +202,7 @@ export const PATTERNS: Record<string, ArchitecturePattern> = {
     description: 'Event-driven functions with managed backend services',
     detectionRules: [
       {
-        matcher: (nodes, edges) => nodes.filter((n) => n.type === 'lambda').length > 0,
+        matcher: (nodes, _edges) => nodes.filter((n) => n.type === 'lambda').length > 0,
         confidence: 0.7,
       },
     ],
