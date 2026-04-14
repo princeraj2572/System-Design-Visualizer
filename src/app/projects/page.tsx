@@ -1,12 +1,14 @@
-'use client';
+  'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useArchitectureStore } from '@/store/architecture-store';
 import { projectService, ProjectsListResponse } from '@/lib/project-service';
 import Button from '@/components/ui/Button';
 import { Layout } from '@/components/ui/Layout';
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const { authUser } = useArchitectureStore();
   const [projects, setProjects] = useState<ProjectsListResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,14 +74,37 @@ export default function ProjectsPage() {
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-slate-900 mb-2">
-              System Design Visualizer
-            </h1>
-            <p className="text-slate-600">
-              Welcome back, <span className="font-semibold">{authUser?.username}</span>
-            </p>
+          {/* Header with Back Button */}
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-4 mb-2">
+                <button
+                  onClick={() => router.push('/')}
+                  className="inline-flex items-center justify-center w-10 h-10 rounded-lg hover:bg-slate-200 transition-colors"
+                  title="Go back"
+                >
+                  <svg
+                    className="w-6 h-6 text-slate-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                </button>
+                <h1 className="text-4xl font-bold text-slate-900">
+                  System Design Visualizer
+                </h1>
+              </div>
+              <p className="text-slate-600 ml-14">
+                Welcome back, <span className="font-semibold">{authUser?.username}</span>
+              </p>
+            </div>
           </div>
 
           {/* Error */}

@@ -3,14 +3,50 @@
  */
 
 export type NodeType = 
-  | 'api-server'
-  | 'database'
+  // Frontend
+  | 'client'
+  | 'web-frontend'
+  | 'mobile-app'
+  // API
+  | 'api-gateway'
+  | 'rest-api'
+  | 'graphql-server'
+  | 'grpc-server'
+  | 'websocket-server'
+  // Compute
+  | 'lambda'
+  | 'container'
+  | 'vm'
+  // Data
+  | 'sql-database'
+  | 'nosql-database'
+  | 'graph-database'
+  | 'search-engine'
+  | 'data-warehouse'
+  // Cache/CDN
   | 'cache'
-  | 'load-balancer'
+  | 'cdn'
+  // Messaging
   | 'message-queue'
-  | 'worker'
+  | 'pub-sub'
+  | 'event-bus'
+  // Infrastructure
+  | 'load-balancer'
+  | 'reverse-proxy'
+  | 'firewall'
+  | 'dns'
   | 'storage'
-  | 'service';
+  // Observability
+  | 'monitoring'
+  | 'logging'
+  | 'tracing'
+  | 'alerting'
+  // Services
+  | 'service'
+  | 'worker'
+  // Legacy (for backward compatibility)
+  | 'api-server'
+  | 'database';
 
 export interface NodeData {
   id: string;

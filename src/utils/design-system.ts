@@ -88,57 +88,280 @@ export const TRANSITIONS = {
   slower: '500ms',
 };
 
-// Node type configuration
-export const NODE_TYPES = {
+// Node type configuration with over 25 architecture components
+export const NODE_TYPES_CONFIG = {
+  // ===== Frontend Layer =====
+  'client': {
+    label: 'Client/Browser',
+    icon: 'Globe',
+    iconColor: '#3b82f6',
+    category: 'Frontend',
+    description: 'Web or desktop client application',
+  },
+  'web-frontend': {
+    label: 'Web Frontend',
+    icon: 'Smartphone',
+    iconColor: '#3b82f6',
+    category: 'Frontend',
+    description: 'React/Vue/Angular frontend app',
+  },
+  'mobile-app': {
+    label: 'Mobile App',
+    icon: 'Phone',
+    iconColor: '#3b82f6',
+    category: 'Frontend',
+    description: 'iOS or Android mobile application',
+  },
+
+  // ===== API Layer =====
+  'api-gateway': {
+    label: 'API Gateway',
+    icon: 'Network',
+    iconColor: '#06b6d4',
+    category: 'API',
+    description: 'Central entry point for all APIs',
+  },
+  'rest-api': {
+    label: 'REST API',
+    icon: 'Server',
+    iconColor: '#06b6d4',
+    category: 'API',
+    description: 'REST API server',
+  },
+  'graphql-server': {
+    label: 'GraphQL Server',
+    icon: 'Network',
+    iconColor: '#06b6d4',
+    category: 'API',
+    description: 'GraphQL query server',
+  },
+  'grpc-server': {
+    label: 'gRPC Server',
+    icon: 'Zap',
+    iconColor: '#06b6d4',
+    category: 'API',
+    description: 'High-performance RPC server',
+  },
+  'websocket-server': {
+    label: 'WebSocket Server',
+    icon: 'MessageSquare',
+    iconColor: '#06b6d4',
+    category: 'API',
+    description: 'Real-time bidirectional communication',
+  },
+
+  // ===== Compute Layer =====
+  'lambda': {
+    label: 'Lambda/Serverless',
+    icon: 'Cpu',
+    iconColor: '#f59e0b',
+    category: 'Compute',
+    description: 'Serverless function',
+  },
+  'container': {
+    label: 'Container/Docker',
+    icon: 'Box',
+    iconColor: '#f59e0b',
+    category: 'Compute',
+    description: 'Containerized service',
+  },
+  'vm': {
+    label: 'Virtual Machine',
+    icon: 'Server',
+    iconColor: '#f59e0b',
+    category: 'Compute',
+    description: 'EC2/VM instance',
+  },
+
+  // ===== Data Layer =====
+  'sql-database': {
+    label: 'SQL Database',
+    icon: 'Database',
+    iconColor: '#8b5cf6',
+    category: 'Data',
+    description: 'PostgreSQL/MySQL database',
+  },
+  'nosql-database': {
+    label: 'NoSQL Database',
+    icon: 'Database',
+    iconColor: '#8b5cf6',
+    category: 'Data',
+    description: 'MongoDB/DynamoDB/Cassandra',
+  },
+  'graph-database': {
+    label: 'Graph Database',
+    icon: 'Network',
+    iconColor: '#8b5cf6',
+    category: 'Data',
+    description: 'Neo4j or similar',
+  },
+  'search-engine': {
+    label: 'Search Engine',
+    icon: 'Eye',
+    iconColor: '#8b5cf6',
+    category: 'Data',
+    description: 'Elasticsearch/Solr',
+  },
+  'data-warehouse': {
+    label: 'Data Warehouse',
+    icon: 'Box',
+    iconColor: '#8b5cf6',
+    category: 'Data',
+    description: 'Snowflake/BigQuery/Redshift',
+  },
+
+  // ===== Cache & CDN =====
+  'cache': {
+    label: 'Cache',
+    icon: 'Zap',
+    iconColor: '#10b981',
+    category: 'Performance',
+    description: 'Redis/Memcached',
+  },
+  'cdn': {
+    label: 'CDN',
+    icon: 'Globe',
+    iconColor: '#10b981',
+    category: 'Performance',
+    description: 'Content Delivery Network',
+  },
+
+  // ===== Messaging =====
+  'message-queue': {
+    label: 'Message Queue',
+    icon: 'MessageSquare',
+    iconColor: '#ec4899',
+    category: 'Messaging',
+    description: 'RabbitMQ/SQS/Kafka',
+  },
+  'pub-sub': {
+    label: 'Pub/Sub',
+    icon: 'MessageSquare',
+    iconColor: '#ec4899',
+    category: 'Messaging',
+    description: 'Event publishing & subscription',
+  },
+  'event-bus': {
+    label: 'Event Bus',
+    icon: 'MessageSquare',
+    iconColor: '#ec4899',
+    category: 'Messaging',
+    description: 'Central event routing',
+  },
+
+  // ===== Infrastructure =====
+  'load-balancer': {
+    label: 'Load Balancer',
+    icon: 'Activity',
+    iconColor: '#14b8a6',
+    category: 'Infrastructure',
+    description: 'Distribute incoming traffic',
+  },
+  'reverse-proxy': {
+    label: 'Reverse Proxy',
+    icon: 'Shield',
+    iconColor: '#14b8a6',
+    category: 'Infrastructure',
+    description: 'Nginx/HAProxy',
+  },
+  'firewall': {
+    label: 'Firewall',
+    icon: 'Shield',
+    iconColor: '#14b8a6',
+    category: 'Infrastructure',
+    description: 'Security firewall',
+  },
+  'dns': {
+    label: 'DNS',
+    icon: 'Network',
+    iconColor: '#14b8a6',
+    category: 'Infrastructure',
+    description: 'Domain name resolution',
+  },
+  'storage': {
+    label: 'Storage',
+    icon: 'HardDrive',
+    iconColor: '#14b8a6',
+    category: 'Infrastructure',
+    description: 'S3/GCS/Azure Blob',
+  },
+
+  // ===== Observability =====
+  'monitoring': {
+    label: 'Monitoring',
+    icon: 'BarChart3',
+    iconColor: '#f87171',
+    category: 'Observability',
+    description: 'Prometheus/DataDog/New Relic',
+  },
+  'logging': {
+    label: 'Logging',
+    icon: 'FileText',
+    iconColor: '#f87171',
+    category: 'Observability',
+    description: 'ELK Stack/Splunk',
+  },
+  'tracing': {
+    label: 'Tracing/APM',
+    icon: 'Activity',
+    iconColor: '#f87171',
+    category: 'Observability',
+    description: 'Jaeger/Zipkin/APM',
+  },
+  'alerting': {
+    label: 'Alerting',
+    icon: 'AlertCircle',
+    iconColor: '#f87171',
+    category: 'Observability',
+    description: 'Alert management',
+  },
+
+  // ===== Services =====
+  'service': {
+    label: 'Microservice',
+    icon: 'Cpu',
+    iconColor: '#62e0d5',
+    category: 'Services',
+    description: 'Independent business service',
+  },
+  'worker': {
+    label: 'Worker',
+    icon: 'Clock',
+    iconColor: '#62e0d5',
+    category: 'Services',
+    description: 'Background job processor',
+  },
+
+  // ===== Legacy (for backward compatibility) =====
   'api-server': {
     label: 'API Server',
-    icon: '🔧',
-    color: '#3b82f6',
+    icon: 'Server',
+    iconColor: '#3b82f6',
+    category: 'API',
     description: 'REST/GraphQL API endpoint',
   },
   'database': {
     label: 'Database',
-    icon: '🗄️',
-    color: '#8b5cf6',
+    icon: 'Database',
+    iconColor: '#8b5cf6',
+    category: 'Data',
     description: 'Data persistence layer',
   },
-  'cache': {
-    label: 'Cache',
-    icon: '⚡',
-    color: '#06b6d4',
-    description: 'In-memory cache (Redis, Memcached)',
-  },
-  'load-balancer': {
-    label: 'Load Balancer',
-    icon: '⚖️',
-    color: '#ec4899',
-    description: 'Distribute traffic',
-  },
-  'message-queue': {
-    label: 'Message Queue',
-    icon: '📨',
-    color: '#f59e0b',
-    description: 'Async message processing',
-  },
-  'worker': {
-    label: 'Worker',
-    icon: '👷',
-    color: '#10b981',
-    description: 'Background job processor',
-  },
-  'storage': {
-    label: 'Storage',
-    icon: '💾',
-    color: '#6366f1',
-    description: 'Object/File storage',
-  },
-  'service': {
-    label: 'Microservice',
-    icon: '🔌',
-    color: '#14b8a6',
-    description: 'Business logic service',
-  },
 };
+
+// For backward compatibility - export emoji version
+export const NODE_TYPES = Object.entries(NODE_TYPES_CONFIG).reduce(
+  (acc, [key, value]) => {
+    acc[key as any] = {
+      label: value.label,
+      icon: '🔧',
+      color: value.iconColor,
+      description: value.description,
+    };
+    return acc;
+  },
+  {} as Record<string, any>
+);
 
 export const EDGE_TYPES = {
   http: { label: 'HTTP/REST', color: '#3b82f6' },

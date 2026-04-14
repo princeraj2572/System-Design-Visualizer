@@ -34,6 +34,18 @@ interface StoreState extends ArchitectureState {
   removeNode: (id: string) => void;
   updateNode: (id: string, updates: Partial<NodeData>) => void;
   selectNode: (id: string | null) => void;
+  
+  // Multi-select operations
+  selectedNodes: string[];
+  addToSelection: (id: string) => void;
+  removeFromSelection: (id: string) => void;
+  toggleSelection: (id: string) => void;
+  clearSelection: () => void;
+  selectAll: () => void;
+  deleteSelectedNodes: () => void;
+  duplicateSelectedNodes: () => void;
+  copyToClipboard: () => void;
+  pasteFromClipboard: () => void;
 
   // Edge operations
   addEdge: (edge: Omit<Edge, 'id'>) => void;
@@ -65,6 +77,9 @@ const initialState: ArchitectureState = {
   theme: 'light',
 };
 
+// Clipboard for copy/paste
+let clipboardData: { nodes: NodeData[]; edges: Edge[] } | null = null;
+
 export const useArchitectureStore = create<StoreState>((set, get) => ({
   ...initialState,
   authToken: null,
@@ -75,6 +90,7 @@ export const useArchitectureStore = create<StoreState>((set, get) => ({
   projectDescription: '',
   isLoadingProject: false,
   isSavingProject: false,
+  selectedNodes: [],
 
   // Auth
   setAuthToken: (token) =>
@@ -189,6 +205,115 @@ export const useArchitectureStore = create<StoreState>((set, get) => ({
     set(() => ({
       selectedNode: id,
     })),
+
+  // Multi-select operations
+  addToSelection: (id) =>
+    set((state) => ({
+      selectedNodes: state.selectedNodes.includes(id) ? state.selectedNodes : [...state.selectedNodes, id],
+    })),
+
+  removeFromSelection: (id) =>
+    set((state) => ({
+      selectedNodes: state.selectedNodes.filter((nodeId) => nodeId !== id),
+    })),
+
+  toggleSelection: (id) =>
+    set((state) => ({
+      selectedNodes: state.selectedNodes.includes(id)
+        ? state.selectedNodes.filter((nodeId) => nodeId !== id)
+        : [...state.selectedNodes, id],
+    })),
+
+  clearSelection: () =>
+    set(() => ({
+      selectedNodes: [],
+    })),
+
+  selectAll: () =>
+    set((state) => ({
+      selectedNodes: state.nodes.map((n) => n.id),
+    })),
+
+  deleteSelectedNodes: () =>
+    set((state) => {
+      const nodesToDelete = state.selectedNodes;
+      return {
+        nodes: state.nodes.filter((n) => !nodesToDelete.includes(n.id)),
+        edges: state.edges.filter((e) => !nodesToDelete.includes(e.source) && !nodesToDelete.includes(e.target)),
+        selectedNodes: [],
+      };
+    }),
+
+  duplicateSelectedNodes: () =>
+    set((state) => {
+      const nodesToDuplicate = state.nodes.filter((n) => state.selectedNodes.includes(n.id));
+      const edgesToDuplicate = state.edges.filter(
+        (e) => state.selectedNodes.includes(e.source) && state.selectedNodes.includes(e.target)
+      );
+
+      const idMap = new Map<string, string>();
+      const newNodes = nodesToDuplicate.map((node) => {
+        const newId = uuidv4();
+        idMap.set(node.id, newId);
+        return {
+          ...node,
+          id: newId,
+          position: { x: node.position.x + 50, y: node.position.y + 50 },
+        };
+      });
+
+      const newEdges = edgesToDuplicate.map((edge) => ({
+        ...edge,
+        id: uuidv4(),
+        source: idMap.get(edge.source) || edge.source,
+        target: idMap.get(edge.target) || edge.target,
+      }));
+
+      return {
+        nodes: [...state.nodes, ...newNodes],
+        edges: [...state.edges, ...newEdges],
+        selectedNodes: newNodes.map((n) => n.id),
+      };
+    }),
+
+  copyToClipboard: () => {
+    const state = get();
+    const nodesToCopy = state.nodes.filter((n) => state.selectedNodes.includes(n.id));
+    const edgesToCopy = state.edges.filter(
+      (e) => state.selectedNodes.includes(e.source) && state.selectedNodes.includes(e.target)
+    );
+    clipboardData = { nodes: nodesToCopy, edges: edgesToCopy };
+  },
+
+  pasteFromClipboard: () => {
+    if (!clipboardData) return;
+
+    set((state) => {
+      const idMap = new Map<string, string>();
+      const newNodes = clipboardData!.nodes.map((node) => {
+        const newId = uuidv4();
+        idMap.set(node.id, newId);
+        return {
+          ...node,
+          id: newId,
+          position: { x: node.position.x + 30, y: node.position.y + 30 },
+        };
+      });
+
+      const newEdges = clipboardData!.edges.map((edge) => ({
+        ...edge,
+        id: uuidv4(),
+        source: idMap.get(edge.source) || edge.source,
+        target: idMap.get(edge.target) || edge.target,
+      }));
+
+      return {
+        nodes: [...state.nodes, ...newNodes],
+        edges: [...state.edges, ...newEdges],
+        selectedNodes: newNodes.map((n) => n.id),
+      };
+    });
+  },
 
   addEdge: (edge) =>
     set((state) => ({
