@@ -17,6 +17,8 @@ import EdgeTypeDialog from '@/components/canvas/EdgeTypeDialog';
 import ContextMenu from '@/components/canvas/ContextMenu';
 import ZoomControls from '@/components/canvas/ZoomControls';
 import SearchBar from '@/components/canvas/SearchBar';
+import APIInfoPanel from '@/components/canvas/APIInfoPanel';
+import { canConnect } from '@/lib/connection-rules';
 
 const nodeTypes = {
   architecture: ArchitectureNode,
@@ -40,6 +42,8 @@ export const ArchitectureCanvas = () => {
   } | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [apiInfoPanelOpen, setApiInfoPanelOpen] = useState(true);
   
   // PHASE 1: Canvas enhancements
   const [showGrid, setShowGrid] = useState(true);
@@ -58,10 +62,7 @@ export const ArchitectureCanvas = () => {
     removeNode,
     selectedNode,
     selectedNodes,
-    addToSelection,
-    removeFromSelection,
     toggleSelection,
-    clearSelection,
     selectAll,
     deleteSelectedNodes,
     duplicateSelectedNodes,
@@ -209,24 +210,49 @@ export const ArchitectureCanvas = () => {
 
   // Validate connection
   const isValidConnection = useCallback(
-    (connection: Connection): boolean => {
-      if (!connection.source || !connection.target) return false;
-      if (connection.source === connection.target) return false;
+    (connection: Connection): { valid: boolean; reason?: string } => {
+      if (!connection.source || !connection.target) return { valid: false, reason: 'Invalid connection nodes' };
+      if (connection.source === connection.target) return { valid: false, reason: 'Cannot connect to itself' };
 
       // Check for duplicate edges
       const hasDuplicate = edges.some(
         (edge) =>
           edge.source === connection.source && edge.target === connection.target
       );
-      return !hasDuplicate;
+      if (hasDuplicate) return { valid: false, reason: 'Connection already exists' };
+
+      // Check if node types can connect
+      const sourceNode = nodes.find(n => n.id === connection.source);
+      const targetNode = nodes.find(n => n.id === connection.target);
+      
+      if (!sourceNode || !targetNode) return { valid: false, reason: 'Node not found' };
+
+      const sourceType = sourceNode.data?.type;
+      const targetType = targetNode.data?.type;
+
+      if (!sourceType || !targetType) return { valid: false, reason: 'Node type not defined' };
+
+      if (!canConnect(sourceType, targetType)) {
+        return { 
+          valid: false, 
+          reason: `Cannot connect ${sourceType} to ${targetType}` 
+        };
+      }
+
+      return { valid: true };
     },
-    [edges]
+    [edges, nodes]
   );
 
   const onConnect = useCallback(
     (connection: Connection) => {
-      if (!isValidConnection(connection)) {
-        console.warn('Invalid connection: self-loop or duplicate edge detected');
+      const validation = isValidConnection(connection);
+      
+      if (!validation.valid) {
+        console.warn('Invalid connection:', validation.reason);
+        setToastMessage(validation.reason || 'Invalid connection');
+        // Auto-hide toast after 3 seconds
+        setTimeout(() => setToastMessage(null), 3000);
         return;
       }
 
@@ -517,6 +543,24 @@ export const ArchitectureCanvas = () => {
           setShowEdgeTypeDialog(false);
         }}
       />
+
+      {/* Toast Notification for Invalid Connections */}
+      {toastMessage && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-red-50 border-2 border-red-300 text-red-800 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-pulse">
+          <span className="text-lg">⚠️</span>
+          <span className="font-medium text-sm">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* API Info Panel - Right Sidebar */}
+      {apiInfoPanelOpen && selectedNode && (
+        <APIInfoPanel
+          selectedNodeId={selectedNode}
+          selectedNodeType={nodes.find(n => n.id === selectedNode)?.data?.type}
+          selectedNodeName={nodes.find(n => n.id === selectedNode)?.data?.name}
+          onToggle={setApiInfoPanelOpen}
+        />
+      )}
     </div>
   );
 };

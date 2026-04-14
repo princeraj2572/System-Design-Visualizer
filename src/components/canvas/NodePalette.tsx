@@ -1,76 +1,45 @@
 /**
- * Node palette - component library for dragging onto canvas
+ * Node Palette - Component library for dragging onto canvas
+ * Shows all available component types organized by category
  */
 
 'use client';
 
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import {
-  Globe,
-  Smartphone,
-  Phone,
-  Network,
-  Server,
-  Zap,
-  MessageSquare,
-  Cpu,
-  Box,
-  Database,
-  Eye,
-  HardDrive,
-  Activity,
-  Shield,
-  BarChart3,
-  FileText,
-  AlertCircle,
-  Clock,
-} from 'lucide-react';
-import Card from '@/components/ui/Card';
-import { NODE_TYPES_CONFIG } from '@/utils/design-system';
+import * as LucideIcons from 'lucide-react';
+import { useArchitectureStore } from '@/store/architecture-store';
+import { NODE_TYPES_CONFIG } from '@/types/nodeTypes';
 import type { NodeType } from '@/types/architecture';
 
 interface NodePaletteProps {
   onNodeDragStart?: (nodeType: NodeType) => void;
 }
 
-const CATEGORY_ORDER = [
-  'Frontend',
-  'API',
-  'Compute',
-  'Data',
-  'Performance',
-  'Messaging',
-  'Infrastructure',
-  'Observability',
-  'Services',
-];
+// Map icon names to lucide components
+function getIconComponent(iconName: string) {
+  return (LucideIcons as any)[iconName] || (LucideIcons as any)['Box'];
+}
 
-const ICON_MAP: Record<string, any> = {
-  Globe,
-  Smartphone,
-  Phone,
-  Network,
-  Server,
-  Zap,
-  MessageSquare,
-  Cpu,
-  Box,
-  Database,
-  Eye,
-  HardDrive,
-  Activity,
-  Shield,
-  BarChart3,
-  FileText,
-  AlertCircle,
-  Clock,
+const CATEGORY_LABELS: Record<string, string> = {
+  frontend: '🎨 Frontend',
+  api: '🔌 API & Services',
+  compute: '⚙️ Compute',
+  data: '🗄️ Data',
+  cache: '⚡ Cache & CDN',
+  messaging: '📨 Messaging',
+  storage: '💾 Storage',
+  other: '📦 Other',
 };
 
-export const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
+const CATEGORY_ORDER = ['frontend', 'api', 'compute', 'data', 'cache', 'messaging', 'storage', 'other'];
+
+export function NodePalette({ onNodeDragStart }: NodePaletteProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set(['Frontend', 'API', 'Data', 'Services'])
+    new Set(['frontend', 'api', 'compute', 'data'])
   );
+
+  const addNode = useArchitectureStore((state) => state.addNode);
 
   const toggleCategory = (category: string) => {
     const newExpanded = new Set(expandedCategories);
@@ -82,52 +51,64 @@ export const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => 
     setExpandedCategories(newExpanded);
   };
 
-  const handleDragStart = (
-    e: React.DragEvent<HTMLDivElement>,
-    nodeType: NodeType
-  ) => {
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, nodeType: NodeType) => {
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('application/json', JSON.stringify({ type: nodeType }));
     onNodeDragStart?.(nodeType);
   };
 
-  // Group by category
-  const grouped = Object.entries(NODE_TYPES_CONFIG).reduce(
-    (acc, [key, config]) => {
-      if (!acc[config.category]) {
-        acc[config.category] = [];
-      }
-      acc[config.category].push({ key, ...config });
-      return acc;
-    },
-    {} as Record<string, any[]>
-  );
+  const handleNodeClick = (nodeType: NodeType) => {
+    // Add node at default position
+    const config = NODE_TYPES_CONFIG[nodeType];
+    addNode({
+      type: nodeType,
+      position: { x: Math.random() * 400, y: Math.random() * 400 },
+      metadata: {
+        name: config.name,
+        description: '',
+        technology: '',
+      },
+    });
+  };
+
+  // Group nodes by category
+  const grouped: Record<string, typeof NODE_TYPES_CONFIG[keyof typeof NODE_TYPES_CONFIG][]> = {};
+  Object.entries(NODE_TYPES_CONFIG).forEach(([_key, config]) => {
+    if (!grouped[config.category]) {
+      grouped[config.category] = [];
+    }
+    grouped[config.category].push(config);
+  });
 
   return (
-    <div className="w-72 bg-white border-r border-slate-200 overflow-y-auto h-full flex flex-col">
-      <div className="p-4 border-b border-slate-200 sticky top-0 bg-white z-10">
+    <div className="w-72 bg-white border-r border-slate-200 overflow-hidden flex flex-col h-full">
+      {/* Header */}
+      <div className="p-4 border-b border-slate-200 flex-shrink-0">
         <h2 className="text-lg font-bold text-slate-900">Components</h2>
-        <p className="text-xs text-slate-500 mt-1">Drag to canvas to add</p>
+        <p className="text-xs text-slate-500 mt-1">Drag to canvas or click to add</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      {/* Categories */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {CATEGORY_ORDER.map((category) => {
-          if (!grouped[category]) return null;
+          if (!grouped[category] || grouped[category].length === 0) return null;
+
           const isExpanded = expandedCategories.has(category);
-          const componentCount = grouped[category].length;
+          const nodes = grouped[category].sort((a, b) => a.name.localeCompare(b.name));
 
           return (
-            <div key={category}>
+            <div key={category} className="space-y-2">
+              {/* Category Header */}
               <button
                 onClick={() => toggleCategory(category)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-150 transition-all border border-slate-200"
               >
-                <div className="text-left">
+                <div className="flex items-center gap-2 flex-1">
                   <span className="font-semibold text-sm text-slate-900">
-                    {category}
+                    {CATEGORY_LABELS[category]}
                   </span>
-                  <span className="text-xs text-slate-500 ml-2">
-                    ({componentCount})
+                  <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">
+                    {nodes.length}
                   </span>
                 </div>
                 {isExpanded ? (
@@ -137,40 +118,42 @@ export const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => 
                 )}
               </button>
 
+              {/* Category Items */}
               {isExpanded && (
-                <div className="ml-1 mt-2 space-y-2 border-l-2 border-slate-200 pl-2">
-                  {grouped[category].map((item) => {
-                    const IconComponent = ICON_MAP[item.icon] || Globe;
+                <div className="space-y-1 ml-1">
+                  {nodes.map((config) => {
+                    const IconComponent = getIconComponent(config.icon);
                     return (
-                      <Card
-                        key={item.key}
-                        variant="outlined"
-                        padding="sm"
+                      <div
+                        key={config.id}
                         draggable
-                        onDragStart={(e) =>
-                          handleDragStart(
-                            e as React.DragEvent<HTMLDivElement>,
-                            item.key as NodeType
-                          )
-                        }
-                        className="cursor-move hover:bg-cyan-50 hover:border-cyan-400 transition-colors active:opacity-50"
+                        onDragStart={(e) => handleDragStart(e, config.id)}
+                        onClick={() => handleNodeClick(config.id)}
+                        className="group flex items-center gap-2 p-2 rounded-md bg-white border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition-all cursor-move"
                       >
-                        <div className="flex items-start gap-2">
-                          <IconComponent
-                            size={18}
-                            style={{ color: item.iconColor }}
-                            className="flex-shrink-0 mt-0.5"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-sm text-slate-900">
-                              {item.label}
-                            </div>
-                            <p className="text-xs text-slate-600 line-clamp-2">
-                              {item.description}
-                            </p>
-                          </div>
+                        {/* Icon */}
+                        <div
+                          className="flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center text-white group-hover:scale-110 transition-transform"
+                          style={{ backgroundColor: config.color }}
+                        >
+                          <IconComponent size={16} />
                         </div>
-                      </Card>
+
+                        {/* Text */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 truncate">
+                            {config.name}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {config.description}
+                          </p>
+                        </div>
+
+                        {/* Action indicator */}
+                        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-xs text-slate-500">⋯</span>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -179,8 +162,13 @@ export const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => 
           );
         })}
       </div>
+
+      {/* Footer - Search hint */}
+      <div className="p-3 border-t border-slate-200 flex-shrink-0 text-xs text-slate-500 bg-slate-50">
+        <p>💡 Tip: Click to add, or drag to position</p>
+      </div>
     </div>
   );
-};
+}
 
 export default NodePalette;

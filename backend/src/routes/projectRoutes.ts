@@ -26,7 +26,10 @@ router.put('/:id', projectController.updateProject);
 // Delete project
 router.delete('/:id', projectController.deleteProject);
 
-// Export project
+// Export project (format: json, yaml, markdown)
 router.get('/:id/export', projectController.exportProject);
+
+// Get project analytics
+router.get('/:id/analytics', projectController.getAnalytics);
 
 export default router;

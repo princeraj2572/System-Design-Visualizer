@@ -6,7 +6,7 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
-import { Copy, Trash2, Edit2, Layers } from 'lucide-react';
+import { Copy, Trash2, Edit2, Layers, type LucideIcon } from 'lucide-react';
 import { useArchitectureStore } from '@/store/architecture-store';
 
 interface ContextMenuProps {
@@ -16,9 +16,18 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
+interface MenuItem {
+  label: string;
+  icon: LucideIcon;
+  onClick: () => void;
+  disabled?: boolean;
+  dividerAfter?: boolean;
+  className?: string;
+}
+
 export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, nodeId, onClose }) => {
   const menuRef = useRef<HTMLDivElement>(null);
-  const { selectNode, removeNode, addNode, nodes, selectedNode } = useArchitectureStore();
+  const { selectNode, removeNode, addNode, nodes } = useArchitectureStore();
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -79,7 +88,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, nodeId, onClose 
     onClose();
   };
 
-  const menuItems = nodeId
+  const menuItems: MenuItem[] = nodeId
     ? [
         {
           label: 'Edit Properties',

@@ -3,7 +3,7 @@
  */
 
 import { create } from 'zustand';
-import { NodeData, Edge, ArchitectureState } from '@/types/architecture';
+import { NodeData, Edge, ArchitectureState, NodeGroup } from '@/types/architecture';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '@/lib/auth-service';
 import { projectService } from '@/lib/project-service';
@@ -61,6 +61,27 @@ interface StoreState extends ArchitectureState {
   load: (data: ArchitectureState) => void;
   save: () => ArchitectureState;
 
+  // Hierarchy operations
+  createGroup: (name: string, nodeIds: string[], parentId?: string | null) => void;
+  deleteGroup: (groupId: string) => void;
+  updateGroup: (groupId: string, updates: Partial<NodeGroup>) => void;
+  moveNodeToGroup: (nodeId: string, groupId: string | null) => void;
+  toggleGroupExpanded: (groupId: string) => void;
+  expandAllGroups: () => void;
+  collapseAllGroups: () => void;
+
+  // Search & Filter
+  searchQuery: string;
+  filterTypes: string[];
+  filterConnectivity: { incoming: boolean; outgoing: boolean };
+  filteredNodeIds: Set<string>;
+  filteredEdgeIds: Set<string>;
+  setSearchQuery: (query: string) => void;
+  setFilterTypes: (types: string[]) => void;
+  setFilterConnectivity: (connectivity: { incoming: boolean; outgoing: boolean }) => void;
+  applyFilters: () => void;
+  clearFilters: () => void;
+
   // Theme
   setTheme: (theme: 'light' | 'dark') => void;
 
@@ -71,7 +92,9 @@ interface StoreState extends ArchitectureState {
 const initialState: ArchitectureState = {
   nodes: [],
   edges: [],
+  groups: [],
   selectedNode: null,
+  expandedGroups: [],
   history: [],
   historyIndex: -1,
   theme: 'light',
@@ -91,6 +114,13 @@ export const useArchitectureStore = create<StoreState>((set, get) => ({
   isLoadingProject: false,
   isSavingProject: false,
   selectedNodes: [],
+  
+  // Search & Filter
+  searchQuery: '',
+  filterTypes: [],
+  filterConnectivity: { incoming: false, outgoing: false },
+  filteredNodeIds: new Set(),
+  filteredEdgeIds: new Set(),
 
   // Auth
   setAuthToken: (token) =>
@@ -130,6 +160,7 @@ export const useArchitectureStore = create<StoreState>((set, get) => ({
         projectDescription: project.description || '',
         nodes: project.nodes || [],
         edges: project.edges || [],
+        groups: project.groups || [],
         isLoadingProject: false,
       }));
     } catch (error) {
@@ -150,6 +181,7 @@ export const useArchitectureStore = create<StoreState>((set, get) => ({
         description: state.projectDescription,
         nodes: state.nodes,
         edges: state.edges,
+        groups: state.groups,
       });
       set(() => ({ isSavingProject: false }));
     } catch (error) {
@@ -167,6 +199,7 @@ export const useArchitectureStore = create<StoreState>((set, get) => ({
         description,
         nodes: [],
         edges: [],
+        groups: [],
       });
       set(() => ({
         currentProjectId: project.id,
@@ -174,6 +207,7 @@ export const useArchitectureStore = create<StoreState>((set, get) => ({
         projectDescription: project.description || '',
         nodes: project.nodes || [],
         edges: project.edges || [],
+        groups: project.groups || [],
         isSavingProject: false,
       }));
       return project.id;
@@ -334,7 +368,7 @@ export const useArchitectureStore = create<StoreState>((set, get) => ({
     set((state) => {
       const newHistory = state.history.slice(0, state.historyIndex + 1);
       return {
-        history: [...newHistory, { nodes: state.nodes, edges: state.edges }],
+        history: [...newHistory, { nodes: state.nodes, edges: state.edges, groups: state.groups }],
         historyIndex: newHistory.length,
       };
     }),
@@ -347,6 +381,7 @@ export const useArchitectureStore = create<StoreState>((set, get) => ({
         return {
           nodes: prevState.nodes,
           edges: prevState.edges,
+          groups: prevState.groups || [],
           historyIndex: prevIndex,
         };
       }
@@ -361,6 +396,7 @@ export const useArchitectureStore = create<StoreState>((set, get) => ({
         return {
           nodes: nextState.nodes,
           edges: nextState.edges,
+          groups: nextState.groups || [],
           historyIndex: nextIndex,
         };
       }
@@ -372,11 +408,62 @@ export const useArchitectureStore = create<StoreState>((set, get) => ({
       theme,
     })),
 
+  // Search & Filter operations
+  setSearchQuery: (query) =>
+    set(() => ({
+      searchQuery: query,
+    })),
+
+  setFilterTypes: (types) =>
+    set(() => ({
+      filterTypes: types,
+    })),
+
+  setFilterConnectivity: (connectivity) =>
+    set(() => ({
+      filterConnectivity: connectivity,
+    })),
+
+  applyFilters: () => {
+    const state = get();
+    const { executeSearch } = require('@/lib/search-service');
+    
+    const result = executeSearch(
+      state.nodes,
+      state.edges,
+      {
+        text: state.searchQuery,
+        filters: {
+          types: state.filterTypes,
+          hasIncoming: state.filterConnectivity.incoming,
+          hasOutgoing: state.filterConnectivity.outgoing,
+          tier: null,
+        },
+      }
+    );
+
+    set(() => ({
+      filteredNodeIds: result.nodeIds,
+      filteredEdgeIds: result.edgeIds,
+    }));
+  },
+
+  clearFilters: () =>
+    set(() => ({
+      searchQuery: '',
+      filterTypes: [],
+      filterConnectivity: { incoming: false, outgoing: false },
+      filteredNodeIds: new Set(),
+      filteredEdgeIds: new Set(),
+    })),
+
   load: (data) =>
     set(() => ({
       nodes: data.nodes || [],
       edges: data.edges || [],
+      groups: data.groups || [],
       selectedNode: data.selectedNode || null,
+      expandedGroups: [],
       history: data.history || [],
       historyIndex: data.historyIndex || -1,
       theme: data.theme || 'light',
@@ -387,18 +474,148 @@ export const useArchitectureStore = create<StoreState>((set, get) => ({
     return {
       nodes: state.nodes,
       edges: state.edges,
+      groups: state.groups,
       selectedNode: state.selectedNode,
+      expandedGroups: state.expandedGroups,
       history: state.history,
       historyIndex: state.historyIndex,
       theme: state.theme,
     };
   },
 
+  // Hierarchy operations
+  createGroup: (name, nodeIds, parentId = null) =>
+    set((state) => {
+      const groupId = uuidv4();
+      
+      // Validate all node IDs exist
+      const nodesToGroup = state.nodes.filter(n => nodeIds.includes(n.id));
+      if (nodesToGroup.length === 0) return state;
+      
+      // Calculate bounding box for the group
+      const positions = nodesToGroup.map(n => n.position);
+      const minX = Math.min(...positions.map(p => p.x));
+      const minY = Math.min(...positions.map(p => p.y));
+      const maxX = Math.max(...positions.map(p => p.x));
+      const maxY = Math.max(...positions.map(p => p.y));
+      
+      const newGroup: NodeGroup = {
+        id: groupId,
+        name,
+        parentId: parentId || null,
+        childNodeIds: nodeIds,
+        position: { x: minX - 50, y: minY - 50 },
+        size: {
+          width: maxX - minX + 200,
+          height: maxY - minY + 200,
+        },
+        color: '#E8F1F5',
+        isCollapsed: false,
+      };
+      
+      // Update nodes to have this group as parent
+      const updatedNodes = state.nodes.map(n =>
+        nodeIds.includes(n.id) ? { ...n, parentId: groupId } : n
+      );
+      
+      return {
+        nodes: updatedNodes,
+        groups: [...state.groups, newGroup],
+        expandedGroups: [...state.expandedGroups, groupId],
+      };
+    }),
+
+  deleteGroup: (groupId) =>
+    set((state) => {
+      const group = state.groups.find(g => g.id === groupId);
+      if (!group) return state;
+      
+      // Remove parentId from all child nodes
+      const updatedNodes = state.nodes.map(n =>
+        n.parentId === groupId ? { ...n, parentId: null } : n
+      );
+      
+      return {
+        nodes: updatedNodes,
+        groups: state.groups.filter(g => g.id !== groupId),
+        expandedGroups: state.expandedGroups.filter(id => id !== groupId),
+      };
+    }),
+
+  updateGroup: (groupId, updates) =>
+    set((state) => ({
+      groups: state.groups.map(g =>
+        g.id === groupId ? { ...g, ...updates } : g
+      ),
+    })),
+
+  moveNodeToGroup: (nodeId, groupId) =>
+    set((state) => {
+      // Validate group exists if groupId is not null
+      if (groupId && !state.groups.find(g => g.id === groupId)) {
+        return state;
+      }
+      
+      // Find the node's current group and remove it from there
+      const node = state.nodes.find(n => n.id === nodeId);
+      if (!node) return state;
+      
+      const updatedNodes = state.nodes.map(n => {
+        if (n.id === nodeId) {
+          return { ...n, parentId: groupId || null };
+        }
+        return n;
+      });
+      
+      // Update old group's childNodeIds
+      const updatedGroups = state.groups.map(g => {
+        if (g.id === node.parentId) {
+          return {
+            ...g,
+            childNodeIds: g.childNodeIds.filter(id => id !== nodeId),
+          };
+        }
+        if (g.id === groupId) {
+          return {
+            ...g,
+            childNodeIds: g.childNodeIds.includes(nodeId)
+              ? g.childNodeIds
+              : [...g.childNodeIds, nodeId],
+          };
+        }
+        return g;
+      });
+      
+      return {
+        nodes: updatedNodes,
+        groups: updatedGroups,
+      };
+    }),
+
+  toggleGroupExpanded: (groupId) =>
+    set((state) => ({
+      expandedGroups: state.expandedGroups.includes(groupId)
+        ? state.expandedGroups.filter(id => id !== groupId)
+        : [...state.expandedGroups, groupId],
+    })),
+
+  expandAllGroups: () =>
+    set((state) => ({
+      expandedGroups: state.groups.map(g => g.id),
+    })),
+
+  collapseAllGroups: () =>
+    set(() => ({
+      expandedGroups: [],
+    })),
+
   clearAll: () =>
     set(() => ({
       nodes: [],
       edges: [],
+      groups: [],
       selectedNode: null,
+      expandedGroups: [],
       history: [],
       historyIndex: -1,
     })),

@@ -5,6 +5,7 @@
 import React, { memo } from 'react';
 import { NodeProps, Handle, Position } from 'reactflow';
 import { NODE_TYPES_CONFIG } from '@/utils/design-system';
+import { getNodeMetadata } from '@/utils/node-metadata';
 import {
   Globe,
   Smartphone,
@@ -24,6 +25,7 @@ import {
   FileText,
   AlertCircle,
   Clock,
+  ArrowRight,
 } from 'lucide-react';
 
 interface ArchitectureNodeData {
@@ -59,6 +61,7 @@ export const ArchitectureNode: React.FC<NodeProps<ArchitectureNodeData>> = memo(
   ({ data, selected, isConnectable }) => {
     const [isHovering, setIsHovering] = React.useState(false);
     const config = NODE_TYPES_CONFIG[data.type as keyof typeof NODE_TYPES_CONFIG];
+    const metadata = getNodeMetadata(data.type);
     const IconComponent = config ? ICON_MAP[config.icon] : Globe;
     const iconColor = config?.iconColor || '#3b82f6';
 
@@ -132,9 +135,26 @@ export const ArchitectureNode: React.FC<NodeProps<ArchitectureNodeData>> = memo(
           )}
           
           {/* Description on hover */}
-          {isHovering && data.description && (
-            <div className="text-xs text-slate-600 italic pt-1 border-t border-slate-200 break-words">
-              {data.description.substring(0, 50)}{data.description.length > 50 ? '...' : ''}
+          {isHovering && (
+            <div className="text-xs pt-2 border-t border-slate-200 space-y-1">
+              {data.description && (
+                <div className="text-slate-600 italic break-words">
+                  {data.description.substring(0, 45)}{data.description.length > 45 ? '...' : ''}
+                </div>
+              )}
+              {metadata && (
+                <div className="bg-cyan-50 px-2 py-1.5 rounded border border-cyan-200">
+                  <div className="text-xs font-semibold text-cyan-900 flex items-center gap-1 mb-1">
+                    <ArrowRight className="w-3 h-3" />
+                    Can connect to:
+                  </div>
+                  <div className="text-xs text-cyan-800 break-words">
+                    {metadata.canConnectTo.length > 0
+                      ? metadata.canConnectTo.slice(0, 5).join(', ') + (metadata.canConnectTo.length > 5 ? '...' : '')
+                      : 'No outgoing connections'}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

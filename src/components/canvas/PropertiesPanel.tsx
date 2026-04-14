@@ -5,15 +5,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Trash2, Save } from 'lucide-react';
+import { Trash2, Save, Settings } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { useArchitectureStore } from '@/store/architecture-store';
-import { NODE_TYPES_CONFIG } from '@/utils/design-system';
+import { getNodeTypeConfig } from '@/types/nodeTypes';
+import AdvancedNodeEditor from './AdvancedNodeEditor';
 
 export const PropertiesPanel: React.FC = () => {
   const { nodes, selectedNode, updateNode, removeNode } = useArchitectureStore();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [showAdvancedEditor, setShowAdvancedEditor] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -88,13 +90,13 @@ export const PropertiesPanel: React.FC = () => {
     }
   };
 
-  const config = node ? NODE_TYPES_CONFIG[node.type as keyof typeof NODE_TYPES_CONFIG] : null;
+  const config = node ? getNodeTypeConfig(node.type) : null;
 
   return (
     <div className="w-80 bg-white border-l border-slate-200 overflow-y-auto flex flex-col h-full">
       <div className="p-4 border-b border-slate-200 sticky top-0 bg-white z-10">
         <h2 className="text-lg font-bold text-slate-900">Properties</h2>
-        <p className="text-xs text-slate-500 mt-0.5">{config?.label || 'Select component'}</p>
+        <p className="text-xs text-slate-500 mt-0.5">{config?.name || 'Select component'}</p>
       </div>
 
       {node ? (
@@ -204,6 +206,15 @@ export const PropertiesPanel: React.FC = () => {
               {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
             <Button
+              onClick={() => setShowAdvancedEditor(true)}
+              variant="ghost"
+              className="w-full"
+              size="sm"
+            >
+              <Settings size={16} className="mr-1" />
+              Advanced Properties
+            </Button>
+            <Button
               onClick={handleDelete}
               variant="ghost"
               className="w-full text-red-600 hover:bg-red-50"
@@ -213,6 +224,11 @@ export const PropertiesPanel: React.FC = () => {
               Delete Component
             </Button>
           </div>
+
+          {/* Advanced Editor Modal */}
+          {showAdvancedEditor && node && (
+            <AdvancedNodeEditor node={node} onClose={() => setShowAdvancedEditor(false)} />
+          )}
         </>
       ) : (
         <div className="flex-1 flex items-center justify-center p-4">

@@ -11,7 +11,13 @@ import HierarchyPanel from '@/components/canvas/HierarchyPanel';
 import PropertiesPanel from '@/components/canvas/PropertiesPanel';
 import Button from '@/components/ui/Button';
 import { layoutNodesHierarchical } from '@/lib/layout-engine';
-import { Zap } from 'lucide-react';
+import { Zap, Download, Upload, BarChart3 } from 'lucide-react';
+import { useRealtime } from '@/hooks/useRealtime';
+import PresenceIndicator from '@/components/realtime/PresenceIndicator';
+import RemoteCursorsOverlay from '@/components/realtime/RemoteCursorsOverlay';
+import { ExportDialog } from '@/components/canvas/ExportDialog';
+import { ImportDialog } from '@/components/canvas/ImportDialog';
+import { AnalyticsPanel } from '@/components/canvas/AnalyticsPanel';
 
 export default function EditorPage() {
   const params = useParams();
@@ -23,6 +29,11 @@ export default function EditorPage() {
   const [rightPanelWidth, setRightPanelWidth] = useState(320);
   const [isResizing, setIsResizing] = useState(false);
   const [isLayouting, setIsLayouting] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   const load = useArchitectureStore((state) => state.load);
   const saveProject = useArchitectureStore((state) => state.saveProject);
@@ -34,6 +45,22 @@ export default function EditorPage() {
   const edges = useArchitectureStore((state) => state.edges);
   const updateNode = useArchitectureStore((state) => state.updateNode);
   const selectedNode = useArchitectureStore((state) => state.selectedNode);
+
+  // Initialize auth state
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    const storedUserId = localStorage.getItem('userId');
+    if (storedToken) setToken(storedToken);
+    if (storedUserId) setUserId(storedUserId);
+  }, []);
+
+  // Initialize real-time collaboration
+  const realtime = useRealtime({
+    projectId,
+    token: token || '',
+    userId: userId || '',
+    enabled: !!token && !!userId && !!projectId,
+  });
 
   useEffect(() => {
     if (projectId) {
@@ -52,7 +79,9 @@ export default function EditorPage() {
       load({
         nodes: project.nodes || [],
         edges: project.edges || [],
+        groups: project.groups || [],
         selectedNode: null,
+        expandedGroups: [],
         history: [],
         historyIndex: -1,
         theme: 'light',
@@ -92,20 +121,31 @@ export default function EditorPage() {
 
   const handleExport = async () => {
     if (!projectId) return;
+    setShowExportDialog(true);
+  };
 
+  const handleImportSuccess = async (project: any) => {
     try {
-      const data = await projectService.exportProject(projectId);
-      
-      // Trigger download
-      const element = document.createElement('a');
-      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(data, null, 2)));
-      element.setAttribute('download', `${projectName}.json`);
-      element.style.display = 'none';
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
+      // Load imported project data into canvas
+      load({
+        nodes: project.nodes || [],
+        edges: project.edges || [],
+        groups: project.groups || [],
+        selectedNode: null,
+        expandedGroups: [],
+        history: [],
+        historyIndex: -1,
+        theme: 'light',
+      });
+
+      // Update project metadata
+      setProjectName(project.name);
+      setProjectDescription(project.description);
+
+      setError('');
+      setShowImportDialog(false);
     } catch (err: any) {
-      setError(err.message || 'Failed to export project');
+      setError(err.message || 'Failed to import project');
     }
   };
 
@@ -159,9 +199,24 @@ export default function EditorPage() {
           <Button onClick={() => setShowHierarchy(!showHierarchy)} variant="ghost">
             {showHierarchy ? 'Hide' : 'Show'} Hierarchy
           </Button>
-          <Button onClick={handleExport} variant="ghost">
+
+          <div className="w-px h-6 bg-slate-300" />
+
+          <Button onClick={handleExport} variant="ghost" title="Export architecture">
+            <Download size={16} className="mr-1" />
             Export
           </Button>
+          <Button onClick={() => setShowImportDialog(true)} variant="ghost" title="Import architecture">
+            <Upload size={16} className="mr-1" />
+            Import
+          </Button>
+          <Button onClick={() => setShowAnalytics(true)} variant="ghost" title="View analytics">
+            <BarChart3 size={16} className="mr-1" />
+            Analytics
+          </Button>
+
+          <div className="w-px h-6 bg-slate-300" />
+
           <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Save'}
           </Button>
@@ -200,7 +255,18 @@ export default function EditorPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden" onMouseMove={(e) => realtime?.sendCursorPosition(e.clientX, e.clientY)}>
+          {/* Remote cursors overlay */}
+          <RemoteCursorsOverlay remoteCursors={realtime?.remoteCursors || []} />
+
+          {/* Presence indicator */}
+          <PresenceIndicator 
+            activeUsers={realtime?.activeUsers || []} 
+            remoteCursors={realtime?.remoteCursors || []}
+            selectedNodes={realtime?.selectedNodes || []}
+            isConnected={realtime?.isConnected || false}
+          />
+
           {/* Node Palette - left sidebar (fixed 288px) */}
           <NodePalette />
           
@@ -266,6 +332,28 @@ export default function EditorPage() {
           )}
         </div>
       )}
+
+      {/* Export Dialog */}
+      <ExportDialog
+        projectId={projectId}
+        projectName={projectName}
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+      />
+
+      {/* Import Dialog */}
+      <ImportDialog
+        isOpen={showImportDialog}
+        onClose={() => setShowImportDialog(false)}
+        onImportSuccess={handleImportSuccess}
+      />
+
+      {/* Analytics Panel */}
+      <AnalyticsPanel
+        projectId={projectId}
+        isOpen={showAnalytics}
+        onClose={() => setShowAnalytics(false)}
+      />
     </div>
   );
 }

@@ -4,7 +4,7 @@
 
 import pool from '@/config/database';
 import redisClient from '@/config/redis';
-import { Project, Node, Edge } from '@/models/types';
+import { Project, Node, Edge, NodeGroup } from '@/models/types';
 import { NotFoundError, AuthorizationError } from '@/utils/errors';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -17,14 +17,20 @@ export class ProjectService {
     name: string,
     description: string,
     nodes: Node[] = [],
-    edges: Edge[] = []
+    edges: Edge[] = [],
+    groups: NodeGroup[] = []
   ): Promise<Project> {
+    // Validate hierarchy
+    if (groups.length > 0) {
+      this.validateHierarchy(groups, nodes.map(n => n.id));
+    }
+
     const projectId = uuidv4();
     const now = new Date();
 
     const query = `
-      INSERT INTO projects (id, user_id, name, description, nodes, edges, version, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, '1.0.0', $7, $8)
+      INSERT INTO projects (id, user_id, name, description, nodes, edges, groups, version, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, '1.0.0', $8, $9)
       RETURNING *
     `;
 
@@ -35,6 +41,7 @@ export class ProjectService {
       description,
       JSON.stringify(nodes),
       JSON.stringify(edges),
+      JSON.stringify(groups),
       now,
       now,
     ]);
@@ -163,6 +170,13 @@ export class ProjectService {
       values.push(JSON.stringify(updates.edges));
     }
 
+    if (updates.groups !== undefined) {
+      // Validate hierarchy
+      this.validateHierarchy(updates.groups, updates.nodes ? updates.nodes.map(n => n.id) : project.nodes.map((n: any) => n.id));
+      setClause.push(`groups = $${paramCount++}`);
+      values.push(JSON.stringify(updates.groups));
+    }
+
     setClause.push(`updated_at = $${paramCount++}`);
     values.push(new Date());
 
@@ -211,6 +225,53 @@ export class ProjectService {
   }
 
   /**
+   * Validate hierarchy integrity
+   */
+  private static validateHierarchy(groups: NodeGroup[], nodeIds: string[]): void {
+    const visitedGroups = new Set<string>();
+    const nodeIdSet = new Set(nodeIds);
+
+    for (const group of groups) {
+      // Check for circular references
+      this.checkCircularReferences(group.id, group.parentId, groups, visitedGroups);
+
+      // Check that all child nodes exist
+      for (const childId of group.childNodeIds) {
+        if (!nodeIdSet.has(childId)) {
+          throw new Error(`Invalid group: child node ${childId} does not exist`);
+        }
+      }
+
+      // Check that parent group exists if specified
+      if (group.parentId && !groups.find(g => g.id === group.parentId)) {
+        throw new Error(`Invalid group: parent group ${group.parentId} does not exist`);
+      }
+    }
+  }
+
+  /**
+   * Check for circular references in group hierarchy
+   */
+  private static checkCircularReferences(
+    currentId: string,
+    parentId: string | null | undefined,
+    groups: NodeGroup[],
+    visited: Set<string>
+  ): void {
+    if (!parentId) return;
+
+    if (visited.has(parentId)) {
+      throw new Error(`Circular reference detected in group hierarchy`);
+    }
+
+    visited.add(parentId);
+    const parentGroup = groups.find(g => g.id === parentId);
+    if (parentGroup) {
+      this.checkCircularReferences(currentId, parentGroup.parentId, groups, visited);
+    }
+  }
+
+  /**
    * Format project response
    */
   private static formatProject(rawProject: any): Project {
@@ -218,6 +279,7 @@ export class ProjectService {
       ...rawProject,
       nodes: typeof rawProject.nodes === 'string' ? JSON.parse(rawProject.nodes) : rawProject.nodes,
       edges: typeof rawProject.edges === 'string' ? JSON.parse(rawProject.edges) : rawProject.edges,
+      groups: typeof rawProject.groups === 'string' ? JSON.parse(rawProject.groups) : (rawProject.groups || []),
     };
   }
 }

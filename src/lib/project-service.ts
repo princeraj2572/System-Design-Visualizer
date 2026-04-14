@@ -3,13 +3,14 @@
  */
 
 import { apiClient } from './api-client';
-import type { NodeData, Edge, Project } from '@/types/architecture';
+import type { NodeData, Edge, Project, NodeGroup } from '@/types/architecture';
 
 export interface CreateProjectRequest {
   name: string;
   description?: string;
   nodes?: NodeData[];
   edges?: Edge[];
+  groups?: NodeGroup[];
 }
 
 export interface UpdateProjectRequest {
@@ -17,6 +18,7 @@ export interface UpdateProjectRequest {
   description?: string;
   nodes?: NodeData[];
   edges?: Edge[];
+  groups?: NodeGroup[];
 }
 
 export interface ProjectsListResponse {

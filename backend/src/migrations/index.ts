@@ -47,6 +47,14 @@ const migrations = [
     `,
   },
 
+  // Add groups column to projects (hierarchy support)
+  {
+    name: 'add_groups_to_projects',
+    up: `
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS groups JSONB DEFAULT '[]'::jsonb;
+    `,
+  },
+
   // Project shares table
   {
     name: 'create_project_shares_table',
@@ -93,8 +101,8 @@ export async function runMigrations(): Promise<void> {
         await pool.query(migration.up);
         logger.info(`Migration completed: ${migration.name}`);
       } catch (error: any) {
-        if (error.code === '42P07') {
-          // Table already exists
+        if (error.code === '42P07' || error.code === '42701') {
+          // Table or column already exists
           logger.info(`Migration skipped (already exists): ${migration.name}`);
         } else {
           throw error;

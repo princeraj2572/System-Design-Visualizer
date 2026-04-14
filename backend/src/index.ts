@@ -5,11 +5,13 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
 import logger from '@/utils/logger';
 import { errorHandler } from '@/middleware/errorHandler';
 import { runMigrations } from '@/migrations';
 import projectRoutes from '@/routes/projectRoutes';
 import userRoutes from '@/routes/userRoutes';
+import { initializeWebSocket } from '@/realtime/websocket';
 
 dotenv.config();
 
@@ -64,10 +66,16 @@ async function initializeDatabase() {
 const PORT = process.env.PORT || 5000;
 
 // Initialize DB then start server
-initializeDatabase().then((success) => {
-  const server = app.listen(PORT, () => {
+initializeDatabase().then(() => {
+  const server = createServer(app);
+  
+  // Initialize WebSocket
+  const io = initializeWebSocket(server);
+  
+  server.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`, {
       environment: process.env.NODE_ENV || 'development',
+      websocket: 'enabled',
       timestamp: new Date().toISOString(),
     });
   });
@@ -75,6 +83,7 @@ initializeDatabase().then((success) => {
   // Graceful Shutdown
   const gracefulShutdown = () => {
     logger.info('Received shutdown signal, closing server gracefully...');
+    io.close();
     server.close(() => {
       logger.info('Server closed');
       process.exit(0);

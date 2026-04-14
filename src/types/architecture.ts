@@ -55,12 +55,32 @@ export interface NodeData {
     x: number;
     y: number;
   };
+  parentId?: string | null;
   metadata: {
     name: string;
     description: string;
     technology: string;
     config?: Record<string, unknown>;
   };
+  isCollapsed?: boolean;
+}
+
+export interface NodeGroup {
+  id: string;
+  name: string;
+  description?: string;
+  parentId?: string | null;
+  childNodeIds: string[];
+  color?: string;
+  position: {
+    x: number;
+    y: number;
+  };
+  size: {
+    width: number;
+    height: number;
+  };
+  isCollapsed?: boolean;
 }
 
 export interface Edge {
@@ -77,6 +97,7 @@ export interface Project {
   description?: string;
   nodes: NodeData[];
   edges: Edge[];
+  groups?: NodeGroup[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -84,8 +105,10 @@ export interface Project {
 export interface ArchitectureState {
   nodes: NodeData[];
   edges: Edge[];
+  groups: NodeGroup[];
   selectedNode: string | null;
-  history: Array<{ nodes: NodeData[]; edges: Edge[] }>;
+  expandedGroups: string[];
+  history: Array<{ nodes: NodeData[]; edges: Edge[]; groups: NodeGroup[] }>;
   historyIndex: number;
   theme: 'light' | 'dark';
 }
