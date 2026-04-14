@@ -8,7 +8,6 @@ import {
   ExportFormat,
 } from '@/lib/exporters';
 import { downloadFile, copyToClipboard } from '@/lib/exporters/export-utils';
-import Button from '@/components/ui/Button';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -53,24 +52,6 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
   }, [selectedFormat, isOpen, nodes, edges, projectName]);
 
   const handleCopy = async () => {
-    const success = await copyToClipboard(exportContent);
-    if (success) {
-      setCopyFeedback(true);
-      setTimeout(() => setCopyFeedback(false), 2000);
-    }
-  };
-
-  const handleDownload = () => {
-    try {
-      const result = exportArchitecture(selectedFormat, nodes, edges, projectName);
-      const mimeType = result.mimeType || 'text/plain';
-      downloadFile(result.content, result.filename, mimeType);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Download failed');
-    }
-  };
-
-  const handleCopy = async () => {
     if (exportContent) {
       const success = await copyToClipboard(exportContent);
       if (success) {
@@ -82,9 +63,15 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
 
   const handleDownload = () => {
     if (exportContent) {
-      const formats = getSupportedFormats();
-      const format = formats.find((f) => f.id === selectedFormat);
-      const extension = format?.fileExtension || 'txt';
+      const extensionMap: Record<ExportFormat, string> = {
+        yaml: 'yaml',
+        plantuml: 'puml',
+        terraform: 'tf',
+        cloudformation: 'json',
+        mermaid: 'mmd',
+        c4: 'puml',
+      };
+      const extension = extensionMap[selectedFormat] || 'txt';
       downloadFile(exportContent, `architecture-export-${Date.now()}.${extension}`);
     }
   };
@@ -117,7 +104,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
           <div className="px-8 py-4 bg-cyan-50 border-b border-cyan-200 flex items-start gap-3">
             <Info className="w-5 h-5 text-cyan-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-cyan-900">{currentFormat.label}</p>
+              <p className="font-semibold text-cyan-900">{currentFormat.name}</p>
               <p className="text-sm text-cyan-800 mt-1">{currentFormat.description}</p>
             </div>
           </div>
@@ -129,7 +116,6 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
           <div className="w-48 border-r border-slate-200 bg-slate-50 overflow-y-auto">
             <div className="p-4 space-y-2">
               {supportedFormats.map((format) => {
-                const Icon = format.icon || Copy;
                 return (
                   <button
                     key={format.id}
@@ -145,8 +131,8 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                         : 'text-slate-700 hover:bg-slate-100 border-2 border-transparent'
                     }`}
                   >
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="text-sm font-medium truncate">{format.label}</span>
+                    <span className="text-lg w-4 flex-shrink-0">{format.icon}</span>
+                    <span className="text-sm font-medium truncate">{format.name}</span>
                   </button>
                 );
               })}

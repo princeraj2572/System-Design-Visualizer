@@ -3,7 +3,7 @@
  * Exports architecture as Mermaid diagram syntax - lightweight and embeddable
  */
 
-import { escapeMermaid, getNodeLabel, createCommentHeader, getConnectionTypeLabel } from './export-utils';
+import { escapeMermaid, getNodeLabel, getConnectionTypeLabel } from './export-utils';
 
 export interface MermaidExportOptions {
   direction: 'TB' | 'LR' | 'BT' | 'RL';

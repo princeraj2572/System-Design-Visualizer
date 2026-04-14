@@ -335,10 +335,11 @@ export default function EditorPage() {
 
       {/* Export Dialog */}
       <ExportDialog
-        projectId={projectId}
-        projectName={projectName}
         isOpen={showExportDialog}
         onClose={() => setShowExportDialog(false)}
+        nodes={nodes}
+        edges={edges}
+        projectName={projectName || 'Untitled Project'}
       />
 
       {/* Import Dialog */}

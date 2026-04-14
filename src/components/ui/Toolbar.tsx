@@ -8,13 +8,18 @@ import React from 'react';
 import Button from '@/components/ui/Button';
 import { useArchitectureStore } from '@/store/architecture-store';
 
-export const Toolbar: React.FC = () => {
-  const { undo, redo, clearAll, setTheme } = useArchitectureStore();
+interface ToolbarProps {
+  onExportClick?: () => void;
+  onImportClick?: () => void;
+  onAnalyticsClick?: () => void;
+}
 
-  const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log('Export architecture');
-  };
+export const Toolbar: React.FC<ToolbarProps> = ({ 
+  onExportClick,
+  onImportClick,
+  onAnalyticsClick,
+}) => {
+  const { undo, redo, clearAll, setTheme } = useArchitectureStore();
 
   const handleSave = () => {
     // TODO: Implement save functionality
@@ -58,10 +63,26 @@ export const Toolbar: React.FC = () => {
         <Button
           size="sm"
           variant="ghost"
-          onClick={handleExport}
-          title="Export architecture"
+          onClick={onExportClick}
+          title="Export architecture to multiple formats"
         >
           📥 Export
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onImportClick}
+          title="Import architecture from file"
+        >
+          📤 Import
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onAnalyticsClick}
+          title="View architecture analytics"
+        >
+          📊 Analytics
         </Button>
 
         <div className="w-px h-6 bg-slate-200" />

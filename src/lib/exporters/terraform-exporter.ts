@@ -3,7 +3,7 @@
  * Exports architecture as Terraform HCL code for AWS/GCP/Azure deployment
  */
 
-import { escapeTerraform, generateResourceName, createCommentHeader, getConnectionTypeLabel } from './export-utils';
+import { escapeTerraform, generateResourceName, createCommentHeader } from './export-utils';
 
 export interface TerraformExportOptions {
   provider: 'aws' | 'gcp' | 'azure';
@@ -118,6 +118,12 @@ export function exportTerraform(
   tfLines.push('# Resources');
   const nodeTypeMap: Record<string, string> = generateNodeTypeMap(opts.provider);
 
+  // Build node ID to resource name map
+  const nodeIndexMap: Record<string, number> = {};
+  nodes.forEach((node, idx) => {
+    nodeIndexMap[node.id] = idx;
+  });
+
   nodes.forEach((node, idx) => {
     const resourceName = generateResourceName(node.metadata?.name || node.name || node.type, idx);
     const resourceType = nodeTypeMap[node.type] || 'null_resource';
@@ -145,6 +151,24 @@ export function exportTerraform(
       tfLines.push(`    Technology = "${escapeTerraform(technology)}"`);
       tfLines.push(`    Environment = var.environment`);
       tfLines.push(`  }`);
+    }
+
+    // Add depends_on based on incoming edges
+    const dependsOn = edges
+      .filter((edge) => edge.target === node.id)
+      .map((edge) => {
+        const sourceIdx = nodeIndexMap[edge.source];
+        const sourceNode = nodes[sourceIdx];
+        return generateResourceName(sourceNode.metadata?.name || sourceNode.name || sourceNode.type, sourceIdx);
+      });
+
+    if (dependsOn.length > 0) {
+      tfLines.push(`  depends_on = [`);
+      dependsOn.forEach((dep) => {
+        const depType = nodeTypeMap[nodes[nodeIndexMap[dep]]?.type] || 'null_resource';
+        tfLines.push(`    ${depType}.${dep},`);
+      });
+      tfLines.push(`  ]`);
     }
 
     tfLines.push(`}`);

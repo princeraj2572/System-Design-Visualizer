@@ -4,7 +4,7 @@
  * Can be rendered to PNG/SVG using PlantUML online or locally
  */
 
-import { escapePlantUML, getNodeLabel, createCommentHeader, getConnectionTypeLabel } from './export-utils';
+import { escapePlantUML, getNodeLabel, getConnectionTypeLabel } from './export-utils';
 
 export interface PlantUMLExportOptions {
   theme: 'default' | 'dark';
@@ -52,40 +52,6 @@ export function exportPlantUML(
   pumlLines.push(`title ${escapePlantUML(projectName)} Architecture`);
   pumlLines.push('');
 
-  // Define node macros
-  const nodeTypeMap: Record<string, string> = {
-    'client': 'USER',
-    'web-frontend': 'PACKAGE',
-    'mobile-app': 'PACKAGE',
-    'api-gateway': 'INTERFACE',
-    'rest-api': 'INTERFACE',
-    'graphql-server': 'INTERFACE',
-    'grpc-server': 'INTERFACE',
-    'websocket-server': 'INTERFACE',
-    'lambda': 'ARTIFACT',
-    'container': 'ARTIFACT',
-    'vm': 'ARTIFACT',
-    'sql-database': 'DATABASE',
-    'nosql-database': 'DATABASE',
-    'graph-database': 'DATABASE',
-    'search-engine': 'DATABASE',
-    'data-warehouse': 'DATABASE',
-    'cache': 'DATABASE',
-    'cdn': 'CLOUD',
-    'message-queue': 'QUEUE',
-    'pub-sub': 'CLOUD',
-    'event-bus': 'CLOUD',
-    'load-balancer': 'CIRCLE',
-    'reverse-proxy': 'CIRCLE',
-    'firewall': 'SECURITY',
-    'dns': 'CARD',
-    'storage': 'STORAGE',
-    'monitoring': 'MONITORING',
-    'logging': 'CARD',
-    'tracing': 'CARD',
-    'alerting': 'WARNING',
-  };
-
   // Nodes section
   pumlLines.push('' + ' Component Definitions');
   nodes.forEach((node) => {
@@ -108,7 +74,7 @@ export function exportPlantUML(
   pumlLines.push('');
 
   // Connections section
-  pumlLines.push(''" + ' Connections');
+  pumlLines.push(`' Connections`);
   edges.forEach((edge) => {
     const fromSafe = edge.source.replace(/[^a-zA-Z0-9_]/g, '_');
     const toSafe = edge.target.replace(/[^a-zA-Z0-9_]/g, '_');

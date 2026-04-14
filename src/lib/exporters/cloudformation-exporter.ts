@@ -146,6 +146,12 @@ function generateCloudFormationJSON(
     };
   }
 
+  // Build node resource map
+  const nodeIndexMap: Record<string, number> = {};
+  nodes.forEach((node, idx) => {
+    nodeIndexMap[node.id] = idx;
+  });
+
   nodes.forEach((node, idx) => {
     const resourceName = generateResourceName(node.metadata?.name || node.name || node.type, idx)
       .split('_')
@@ -154,7 +160,7 @@ function generateCloudFormationJSON(
 
     const resourceType = getCloudFormationResourceType(node.type);
 
-    template.Resources[resourceName] = {
+    const resource: any = {
       Type: resourceType,
       Properties: {
         DisplayName: node.metadata?.name || node.name || 'Component',
@@ -171,6 +177,24 @@ function generateCloudFormationJSON(
         ],
       },
     };
+
+    // Add dependencies based on edges
+    const dependsOn = edges
+      .filter((edge) => edge.target === node.id)
+      .map((edge) => {
+        const sourceIdx = nodeIndexMap[edge.source];
+        const sourceNode = nodes[sourceIdx];
+        return generateResourceName(sourceNode.metadata?.name || sourceNode.name || sourceNode.type, sourceIdx)
+          .split('_')
+          .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join('');
+      });
+
+    if (dependsOn.length > 0) {
+      resource.DependsOn = dependsOn;
+    }
+
+    template.Resources[resourceName] = resource;
   });
 
   if (options.includeOutputs) {
