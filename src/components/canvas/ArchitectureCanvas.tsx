@@ -28,6 +28,11 @@ export const ArchitectureCanvas = () => {
 
   const onConnect = useCallback(
     (connection: Connection) => {
+      const newEdge = {
+        source: connection.source || '',
+        target: connection.target || '',
+        label: 'connects to',
+      };
       setEdges((eds) => addEdge(connection, eds));
     },
     [setEdges]

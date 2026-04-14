@@ -41,12 +41,17 @@ export class ProjectService {
 
     const project = result.rows[0];
 
-    // Cache in Redis
-    await redisClient.setEx(
-      `project:${projectId}`,
-      3600,
-      JSON.stringify(project)
-    );
+    // Cache in Redis (optional - continue if Redis fails)
+    try {
+      await redisClient.setEx(
+        `project:${projectId}`,
+        3600,
+        JSON.stringify(project)
+      );
+    } catch (redisError) {
+      // Redis is optional, continue without caching
+      console.warn('Redis caching unavailable, using database only');
+    }
 
     return this.formatProject(project);
   }
@@ -56,9 +61,14 @@ export class ProjectService {
    */
   static async getProjectById(projectId: string, userId?: string): Promise<Project> {
     // Try cache first
-    const cached = await redisClient.get(`project:${projectId}`);
-    if (cached) {
-      return this.formatProject(JSON.parse(cached));
+    try {
+      const cached = await redisClient.get(`project:${projectId}`);
+      if (cached) {
+        return this.formatProject(JSON.parse(cached));
+      }
+    } catch (redisError) {
+      // Redis error, continue to database
+      console.warn('Redis unavailable, fetching from database');
     }
 
     const query = 'SELECT * FROM projects WHERE id = $1';
@@ -75,12 +85,17 @@ export class ProjectService {
       throw new AuthorizationError('Not authorized to access this project');
     }
 
-    // Cache in Redis
-    await redisClient.setEx(
-      `project:${projectId}`,
-      3600,
-      JSON.stringify(project)
-    );
+    // Cache in Redis (optional)
+    try {
+      await redisClient.setEx(
+        `project:${projectId}`,
+        3600,
+        JSON.stringify(project)
+      );
+    } catch (redisError) {
+      // Redis is optional, continue without caching
+      console.warn('Redis caching unavailable, using database only');
+    }
 
     return this.formatProject(project);
   }
@@ -162,8 +177,13 @@ export class ProjectService {
 
     const result = await pool.query(query, values);
 
-    // Invalidate cache
-    await redisClient.del(`project:${projectId}`);
+    // Invalidate cache (optional)
+    try {
+      await redisClient.del(`project:${projectId}`);
+    } catch (redisError) {
+      // Redis is optional, continue without cache invalidation
+      console.warn('Redis cache invalidation unavailable');
+    }
 
     return this.formatProject(result.rows[0]);
   }
@@ -181,8 +201,13 @@ export class ProjectService {
     const query = 'DELETE FROM projects WHERE id = $1';
     await pool.query(query, [projectId]);
 
-    // Invalidate cache
-    await redisClient.del(`project:${projectId}`);
+    // Invalidate cache (optional)
+    try {
+      await redisClient.del(`project:${projectId}`);
+    } catch (redisError) {
+      // Redis is optional, continue without cache invalidation
+      console.warn('Redis cache invalidation unavailable');
+    }
   }
 
   /**
