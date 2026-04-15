@@ -20,7 +20,9 @@ import SearchBar from '@/components/canvas/SearchBar';
 import APIInfoPanel from '@/components/canvas/APIInfoPanel';
 import { ExportDialog } from '@/components/canvas/ExportDialog';
 import { ValidationPanel } from '@/components/canvas/ValidationPanel';
+import { PerformanceMonitor } from '@/components/canvas/PerformanceMonitor';
 import { useArchitectureValidation } from '@/lib/validators/validation-hooks';
+import { useViewportCulling, useViewportBounds, usePerformanceMonitor } from '@/hooks/usePerformanceOptimization';
 import { canConnect } from '@/lib/connection-rules';
 
 const nodeTypes = {
@@ -55,6 +57,9 @@ export default function ArchitectureCanvas() {
   const [showMinimap, setShowMinimap] = useState(true);
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
   const [minimapOffset, setMinimapOffset] = useState({ x: 1700, y: 80 });
+  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false);
+  const enablePerformanceOptimization = true; // Always enabled for large architectures
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
   const { fitView } = useReactFlow();
   const { validate: validateArchitecture, result: validationResult, isValidating } = useArchitectureValidation();
@@ -74,6 +79,16 @@ export default function ArchitectureCanvas() {
     copyToClipboard,
     pasteFromClipboard,
   } = useArchitectureStore();
+
+  // Performance optimization hooks
+  const viewportBounds = useViewportBounds(zoom, 0, 0, canvasSize.width, canvasSize.height, 200);
+  const { visibleNodes: culledNodes, visibleEdges: culledEdges, metrics } = useViewportCulling(
+    nodes,
+    edges,
+    viewportBounds,
+    enablePerformanceOptimization && storeNodes.length > 100 // Only enable culling for 100+ nodes
+  );
+  const { fps } = usePerformanceMonitor(showPerformanceMonitor);
 
   // Sync Zustand store to React Flow state
   useEffect(() => {
@@ -129,6 +144,21 @@ export default function ArchitectureCanvas() {
       validateArchitecture({ nodes: validationNodes, edges: validationEdges });
     }
   }, [storeNodes, storeEdges, validateArchitecture]);
+
+  // Track canvas size for viewport culling
+  useEffect(() => {
+    const handleResize = () => {
+      const canvas = document.querySelector('.react-flow__renderer');
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        setCanvasSize({ width: rect.width, height: rect.height });
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -240,6 +270,12 @@ export default function ArchitectureCanvas() {
         e.preventDefault();
         fitView();
         setZoom(1);
+      }
+
+      // Toggle Performance Monitor (Shift+P)
+      if ((e.key === 'p' || e.key === 'P') && e.shiftKey && !inputFocused && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setShowPerformanceMonitor((prev) => !prev);
       }
     };
 
@@ -441,8 +477,8 @@ export default function ArchitectureCanvas() {
         nodes={focusNodeId ? nodes.filter(n => {
           if (n.id === focusNodeId) return true;
           return edges.some(e => (e.source === focusNodeId && e.target === n.id) || (e.target === focusNodeId && e.source === n.id));
-        }) : nodes}
-        edges={focusNodeId ? edges.filter(e => e.source === focusNodeId || e.target === focusNodeId) : edges}
+        }) : (enablePerformanceOptimization && storeNodes.length > 100 ? culledNodes : nodes)}
+        edges={focusNodeId ? edges.filter(e => e.source === focusNodeId || e.target === focusNodeId) : (enablePerformanceOptimization && storeNodes.length > 100 ? culledEdges : edges)}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -615,6 +651,15 @@ export default function ArchitectureCanvas() {
         validationResult={validationResult}
         isLoading={isValidating}
       />
+
+      {/* Performance Monitor */}
+      {showPerformanceMonitor && (
+        <PerformanceMonitor
+          metrics={metrics}
+          fps={fps}
+          isExpanded={true}
+        />
+      )}
     </div>
   );
 }
