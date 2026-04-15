@@ -16,6 +16,7 @@ import {
 
 interface ToolbarProps {
   onExportClick?: () => void;
+  onImportClick?: () => void;
   onLayoutClick?: () => void;
   onShowTemplates?: () => void;
   onShowAuditLog?: () => void;
@@ -70,7 +71,7 @@ const DropdownMenu: React.FC<{ isOpen: boolean; onClose: () => void; triggerRef:
   };
 
 export const ToolbarNew: React.FC<ToolbarProps> = ({
-  onExportClick, onLayoutClick, onShowTemplates, onShowAuditLog, onShowCompliance,
+  onExportClick, onImportClick: _onImportClick, onLayoutClick, onShowTemplates, onShowAuditLog, onShowCompliance,
   onShowHealth, onShowMetrics, onShowDependencies, onShowFrameworks, onShowRemediation,
   onShowCollaboration, onShowSharedWorkspace, onShowPerformance, onAnalyticsClick,
   projectName = 'Untitled Project', isSaving = false,
