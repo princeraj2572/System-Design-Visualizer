@@ -10,6 +10,7 @@ import ToolbarNew from '@/components/ui/ToolbarNew';
 import SidebarNav from '@/components/canvas/SidebarNav';
 import ViewModeTabs from '@/components/canvas/ViewModeTabs';
 import IconLibrary from '@/components/canvas/IconLibrary';
+import PropertiesPanel from '@/components/canvas/PropertiesPanel';
 import { layoutNodesHierarchical } from '@/lib/layout-engine';
 import { useRealtime } from '@/hooks/useRealtime';
 import PresenceIndicator from '@/components/realtime/PresenceIndicator';
@@ -261,16 +262,17 @@ export default function EditorPage() {
             isConnected={realtime?.isConnected || false}
           />
 
-          {/* Enhanced Editor Layout */}
-          <SidebarNav onSelectTool={handleAutoLayout} />
-          
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* View Mode Tabs */}
-            <ViewModeTabs 
-              currentMode={viewMode}
-              onModeChange={setViewMode}
-            />
+          {/* View Mode Tabs - Top */}
+          <ViewModeTabs 
+            currentMode={viewMode}
+            onModeChange={setViewMode}
+          />
 
+          {/* Main Layout Container - Sidebar + Content */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* Left Sidebar */}
+            <SidebarNav onSelectTool={handleAutoLayout} />
+            
             {/* Main Content Area */}
             <div className="flex-1 flex overflow-hidden">
               {/* Canvas Area */}
