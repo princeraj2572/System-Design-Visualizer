@@ -10,7 +10,6 @@ import ToolbarNew from '@/components/ui/ToolbarNew';
 import SidebarNav from '@/components/canvas/SidebarNav';
 import ViewModeTabs from '@/components/canvas/ViewModeTabs';
 import IconLibrary from '@/components/canvas/IconLibrary';
-import PropertiesPanel from '@/components/canvas/PropertiesPanel';
 import { layoutNodesHierarchical } from '@/lib/layout-engine';
 import { useRealtime } from '@/hooks/useRealtime';
 import PresenceIndicator from '@/components/realtime/PresenceIndicator';

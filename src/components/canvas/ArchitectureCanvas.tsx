@@ -28,7 +28,7 @@ const edgeTypes = {
   architecture: ArchitectureEdge,
 };
 
-export const ArchitectureCanvas = () => {
+export default function ArchitectureCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [pendingConnection, setPendingConnection] = useState<Connection | null>(
@@ -563,6 +563,4 @@ export const ArchitectureCanvas = () => {
       )}
     </div>
   );
-};
-
-export default ArchitectureCanvas;
+}
