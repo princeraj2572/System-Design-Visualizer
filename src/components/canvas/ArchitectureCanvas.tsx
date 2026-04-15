@@ -18,6 +18,7 @@ import ContextMenu from '@/components/canvas/ContextMenu';
 import ZoomControls from '@/components/canvas/ZoomControls';
 import SearchBar from '@/components/canvas/SearchBar';
 import APIInfoPanel from '@/components/canvas/APIInfoPanel';
+import { ExportDialog } from '@/components/canvas/ExportDialog';
 import { canConnect } from '@/lib/connection-rules';
 
 const nodeTypes = {
@@ -44,6 +45,7 @@ export default function ArchitectureCanvas() {
   const [zoom, setZoom] = useState(1);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [apiInfoPanelOpen, setApiInfoPanelOpen] = useState(true);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   
   // PHASE 1: Canvas enhancements
   const [showGrid, setShowGrid] = useState(true);
@@ -139,6 +141,12 @@ export default function ArchitectureCanvas() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
         setShowSearch(true);
+      }
+
+      // Export
+      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        setShowExportDialog(true);
       }
 
       // Select all (Ctrl+A)
@@ -561,6 +569,15 @@ export default function ArchitectureCanvas() {
           onToggle={setApiInfoPanelOpen}
         />
       )}
+
+      {/* Export Dialog */}
+      <ExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        nodes={nodes}
+        edges={edges}
+        projectName="System Architecture"
+      />
     </div>
   );
 }

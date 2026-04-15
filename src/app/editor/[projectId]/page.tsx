@@ -7,7 +7,8 @@ import { useArchitectureStore } from '@/store/architecture-store';
 import { projectService } from '@/lib/project-service';
 import ArchitectureCanvas from '@/components/canvas/ArchitectureCanvas';
 import ToolbarNew from '@/components/ui/ToolbarNew';
-import SidebarNav from '@/components/canvas/SidebarNav';
+import ResizableSidebar from '@/components/canvas/ResizableSidebar';
+import BottomToolbar from '@/components/canvas/BottomToolbar';
 import ViewModeTabs from '@/components/canvas/ViewModeTabs';
 import IconLibrary from '@/components/canvas/IconLibrary';
 import { layoutNodesHierarchical } from '@/lib/layout-engine';
@@ -52,6 +53,8 @@ export default function EditorPage() {
   const [showAdvancedCollaboration, setShowAdvancedCollaboration] = useState(false);
   const [showSharedWorkspace, setShowSharedWorkspace] = useState(false);
   const [showPerformanceDashboard, setShowPerformanceDashboard] = useState(false);
+  const [sidebarDetached, setSidebarDetached] = useState(false);
+  const [sidebarWidth] = useState(208);
 
   // Wrapper for setViewMode to persist to localStorage
   const setViewMode = (mode: 'document' | 'both' | 'canvas') => {
@@ -70,6 +73,7 @@ export default function EditorPage() {
   const nodes = useArchitectureStore((state) => state.nodes);
   const edges = useArchitectureStore((state) => state.edges);
   const updateNode = useArchitectureStore((state) => state.updateNode);
+  const addNode = useArchitectureStore((state) => state.addNode);
 
   // Initialize auth state and view mode preference
   useEffect(() => {
@@ -211,6 +215,20 @@ export default function EditorPage() {
     console.log('Dragging icon:', icon.name);
   };
 
+  const handleAddNode = (type: string, name: string) => {
+    // Add a new node to the canvas
+    const newNode = {
+      type: type as any,
+      metadata: {
+        name: name,
+        description: `New ${name}`,
+        technology: 'Custom',
+      },
+      position: { x: Math.random() * 500, y: Math.random() * 500 },
+    };
+    addNode(newNode);
+  };
+
   return (
     <div className="w-full h-screen flex flex-col bg-slate-50">
       {/* Redesigned Toolbar */}
@@ -219,6 +237,7 @@ export default function EditorPage() {
         isSaving={isSaving}
         onLayoutClick={handleAutoLayout}
         onExportClick={() => setShowExportDialog(true)}
+        onImportClick={() => setShowImportDialog(true)}
         onAnalyticsClick={handleSave}
         onShowTemplates={() => setShowTemplateLibrary(true)}
         onShowAuditLog={() => setShowAuditLog(true)}
@@ -249,7 +268,7 @@ export default function EditorPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col overflow-hidden" onMouseMove={(e) => realtime?.sendCursorPosition(e.clientX, e.clientY)}>
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0 relative" onMouseMove={(e) => realtime?.sendCursorPosition(e.clientX, e.clientY)}>
           {/* Remote cursors overlay */}
           <RemoteCursorsOverlay remoteCursors={realtime?.remoteCursors || []} />
 
@@ -261,23 +280,33 @@ export default function EditorPage() {
             isConnected={realtime?.isConnected || false}
           />
 
-          {/* View Mode Tabs - Top */}
-          <ViewModeTabs 
-            currentMode={viewMode}
-            onModeChange={setViewMode}
-          />
+          {/* Center Top View Mode Tabs */}
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-white rounded-lg shadow-md border border-slate-200 p-1">
+            <ViewModeTabs 
+              currentMode={viewMode}
+              onModeChange={setViewMode}
+              className="!bg-white !border-0 !px-0 !py-0"
+            />
+          </div>
 
-          {/* Main Layout Container - Sidebar + Content */}
-          <div className="flex-1 flex overflow-hidden">
-            {/* Left Sidebar */}
-            <SidebarNav onSelectTool={handleAutoLayout} />
+          {/* Main Layout Container with resizable sidebar */}
+          <div className="flex-1 flex overflow-hidden min-h-0">
+            {/* Resizable Left Sidebar */}
+            {!sidebarDetached && (
+              <ResizableSidebar 
+                onSelectTool={handleAutoLayout} 
+                onDetach={() => setSidebarDetached(true)}
+                onAttach={() => setSidebarDetached(false)}
+                defaultWidth={sidebarWidth}
+              />
+            )}
             
             {/* Main Content Area */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex overflow-hidden min-h-0">
               {/* Canvas Area */}
               <ReactFlowProvider>
                 <div 
-                  className="flex-1 flex flex-col overflow-hidden"
+                  className="flex-1 flex flex-col overflow-hidden min-h-0"
                   onDragOver={(e) => {
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'copy';
@@ -308,9 +337,12 @@ export default function EditorPage() {
 
                   {viewMode === 'document' || viewMode === 'both' ? (
                     <div className="flex-1 overflow-hidden p-8 bg-slate-50 border-t border-slate-200">
-                      <div className="bg-white rounded-lg p-6 shadow-sm max-w-4xl mx-auto h-full overflow-y-auto">
+                      <div className="bg-white rounded-lg p-6 shadow-sm max-w-4xl mx-auto h-full overflow-y-auto select-none pointer-events-none">
                         <h2 className="text-2xl font-bold text-slate-900 mb-4">{projectName}</h2>
-                        <p className="text-slate-600">Architecture Documentation</p>
+                        <p className="text-slate-600">Architecture Documentation (Read-only)</p>
+                        <div className="mt-6 text-xs text-slate-500 bg-slate-50 p-4 rounded border border-slate-200">
+                          ℹ️ Documentation view is read-only. Use the Canvas view to modify the architecture.
+                        </div>
                       </div>
                     </div>
                   ) : null}
@@ -324,6 +356,24 @@ export default function EditorPage() {
               />
             </div>
           </div>
+
+          {/* Bottom Center Toolbar */}
+          <BottomToolbar 
+            onAddShape={(shapeType) => console.log('Adding shape:', shapeType)}
+            onAddConnection={(connectionType) => console.log('Adding connection:', connectionType)}
+            onAddNode={handleAddNode}
+          />
+
+          {/* Detached Sidebar (if detached) */}
+          {sidebarDetached && (
+            <ResizableSidebar 
+              onSelectTool={handleAutoLayout} 
+              onDetach={() => setSidebarDetached(true)}
+              onAttach={() => setSidebarDetached(false)}
+              isDetached={true}
+              defaultWidth={sidebarWidth}
+            />
+          )}
         </div>
       )}
 
