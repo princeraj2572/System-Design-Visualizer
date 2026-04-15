@@ -139,7 +139,7 @@ const IconLibrary: React.FC<IconLibraryProps> = ({ onSelectIcon, onDragStart, cl
   }, [searchQuery]);
 
   return (
-    <div className={`w-48 bg-white border-l border-slate-200 flex flex-col overflow-hidden ${className}`}>
+    <div className={`w-64 bg-white border-l border-slate-200 flex flex-col overflow-hidden ${className}`}>
       {/* Header */}
       <div className="px-4 py-3 border-b border-slate-200">
         <h2 className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-3">Icons</h2>
