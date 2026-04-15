@@ -6,10 +6,10 @@ import { ReactFlowProvider } from 'reactflow';
 import { useArchitectureStore } from '@/store/architecture-store';
 import { projectService } from '@/lib/project-service';
 import ArchitectureCanvas from '@/components/canvas/ArchitectureCanvas';
-import NodePalette from '@/components/canvas/NodePalette';
-import HierarchyPanel from '@/components/canvas/HierarchyPanel';
-import PropertiesPanel from '@/components/canvas/PropertiesPanel';
 import ToolbarNew from '@/components/ui/ToolbarNew';
+import SidebarNav from '@/components/canvas/SidebarNav';
+import ViewModeTabs from '@/components/canvas/ViewModeTabs';
+import IconLibrary from '@/components/canvas/IconLibrary';
 import { layoutNodesHierarchical } from '@/lib/layout-engine';
 import { useRealtime } from '@/hooks/useRealtime';
 import PresenceIndicator from '@/components/realtime/PresenceIndicator';
@@ -35,10 +35,9 @@ export default function EditorPage() {
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(!!projectId);
-  const [rightPanelWidth, setRightPanelWidth] = useState(320);
-  const [isResizing, setIsResizing] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [viewMode, setViewModeState] = useState<'document' | 'both' | 'canvas'>('canvas');
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
@@ -54,6 +53,14 @@ export default function EditorPage() {
   const [showSharedWorkspace, setShowSharedWorkspace] = useState(false);
   const [showPerformanceDashboard, setShowPerformanceDashboard] = useState(false);
 
+  // Wrapper for setViewMode to persist to localStorage
+  const setViewMode = (mode: 'document' | 'both' | 'canvas') => {
+    setViewModeState(mode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('editor-view-mode', mode);
+    }
+  };
+
   const load = useArchitectureStore((state) => state.load);
   const saveProject = useArchitectureStore((state) => state.saveProject);
   const setCurrentProjectId = useArchitectureStore((state) => state.setCurrentProjectId);
@@ -63,14 +70,18 @@ export default function EditorPage() {
   const nodes = useArchitectureStore((state) => state.nodes);
   const edges = useArchitectureStore((state) => state.edges);
   const updateNode = useArchitectureStore((state) => state.updateNode);
-  const selectedNode = useArchitectureStore((state) => state.selectedNode);
 
-  // Initialize auth state
+  // Initialize auth state and view mode preference
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const storedUserId = localStorage.getItem('userId');
+    const storedViewMode = localStorage.getItem('editor-view-mode');
+    
     if (storedToken) setToken(storedToken);
     if (storedUserId) setUserId(storedUserId);
+    if (storedViewMode && ['document', 'both', 'canvas'].includes(storedViewMode)) {
+      setViewModeState(storedViewMode as 'document' | 'both' | 'canvas');
+    }
   }, []);
 
   // Initialize real-time collaboration
@@ -190,6 +201,16 @@ export default function EditorPage() {
     }
   };
 
+  const handleIconSelect = (icon: any) => {
+    console.log('Selected icon:', icon.name);
+    // Can be extended to add quick node/icon to canvas
+  };
+
+  const handleIconDragStart = (icon: any) => {
+    // Icon will be passed via drag event
+    console.log('Dragging icon:', icon.name);
+  };
+
   return (
     <div className="w-full h-screen flex flex-col bg-slate-50">
       {/* Redesigned Toolbar */}
@@ -228,7 +249,7 @@ export default function EditorPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex overflow-hidden" onMouseMove={(e) => realtime?.sendCursorPosition(e.clientX, e.clientY)}>
+        <div className="flex-1 flex flex-col overflow-hidden" onMouseMove={(e) => realtime?.sendCursorPosition(e.clientX, e.clientY)}>
           {/* Remote cursors overlay */}
           <RemoteCursorsOverlay remoteCursors={realtime?.remoteCursors || []} />
 
@@ -240,69 +261,68 @@ export default function EditorPage() {
             isConnected={realtime?.isConnected || false}
           />
 
-          {/* Node Palette - left sidebar (fixed 288px) */}
-          <NodePalette />
+          {/* Enhanced Editor Layout */}
+          <SidebarNav onSelectTool={handleAutoLayout} />
           
-          {/* Main Canvas - center (flex-1) */}
-          <ReactFlowProvider>
-            <div className="flex-1 overflow-hidden">
-              <ArchitectureCanvas />
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* View Mode Tabs */}
+            <ViewModeTabs 
+              currentMode={viewMode}
+              onModeChange={setViewMode}
+            />
+
+            {/* Main Content Area */}
+            <div className="flex-1 flex overflow-hidden">
+              {/* Canvas Area */}
+              <ReactFlowProvider>
+                <div 
+                  className="flex-1 flex flex-col overflow-hidden"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    try {
+                      const iconData = e.dataTransfer.getData('application/json');
+                      if (iconData) {
+                        const icon = JSON.parse(iconData);
+                        // Get canvas position
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        console.log(`Dropped icon "${icon.name}" at (${x}, ${y})`);
+                        // This can be extended to auto-create nodes
+                      }
+                    } catch (err) {
+                      console.error('Failed to process dropped icon:', err);
+                    }
+                  }}
+                >
+                  {viewMode === 'canvas' || viewMode === 'both' ? (
+                    <div className="flex-1 overflow-hidden">
+                      <ArchitectureCanvas />
+                    </div>
+                  ) : null}
+
+                  {viewMode === 'document' || viewMode === 'both' ? (
+                    <div className="flex-1 overflow-hidden p-8 bg-slate-50 border-t border-slate-200">
+                      <div className="bg-white rounded-lg p-6 shadow-sm max-w-4xl mx-auto h-full overflow-y-auto">
+                        <h2 className="text-2xl font-bold text-slate-900 mb-4">{projectName}</h2>
+                        <p className="text-slate-600">Architecture Documentation</p>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </ReactFlowProvider>
+
+              {/* Icon Library Right Sidebar */}
+              <IconLibrary 
+                onSelectIcon={handleIconSelect}
+                onDragStart={handleIconDragStart}
+              />
             </div>
-          </ReactFlowProvider>
-
-          {/* Right Sidebar - Properties or Hierarchy */}
-          <div 
-            className="bg-white border-l border-slate-200 overflow-hidden flex flex-col"
-            style={{ width: `${rightPanelWidth}px` }}
-          >
-            {/* Resizable divider */}
-            <div
-              className="absolute left-0 top-0 w-1 h-full bg-slate-200 hover:bg-cyan-400 cursor-col-resize transition-colors"
-              style={{ 
-                left: `-${rightPanelWidth}px`,
-                transform: `translateX(${rightPanelWidth}px)`,
-                marginLeft: '-2px',
-              }}
-              onMouseDown={() => setIsResizing(true)}
-            />
-            
-            {/* Tab-like header to switch between views */}
-            {selectedNode && (
-              <div className="flex border-b border-slate-200 bg-slate-50">
-                <button
-                  className="flex-1 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-white transition-colors border-b-2 border-cyan-500"
-                >
-                  Properties
-                </button>
-                <button
-                  onClick={() => {}}
-                  className="flex-1 px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-white transition-colors"
-                >
-                  Hierarchy
-                </button>
-              </div>
-            )}
-
-            {/* Panel Content */}
-            {selectedNode ? (
-              <PropertiesPanel />
-            ) : (
-              <HierarchyPanel />
-            )}
           </div>
-
-          {/* Global mouse up listener for resizing */}
-          {isResizing && (
-            <div
-              className="fixed inset-0 cursor-col-resize z-50"
-              onMouseMove={(e) => {
-                const newWidth = Math.max(280, Math.min(600, window.innerWidth - e.clientX));
-                setRightPanelWidth(newWidth);
-              }}
-              onMouseUp={() => setIsResizing(false)}
-              onMouseLeave={() => setIsResizing(false)}
-            />
-          )}
         </div>
       )}
 
