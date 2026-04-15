@@ -8,6 +8,8 @@ import {
   ExportFormat,
 } from '@/lib/exporters';
 import { downloadFile, copyToClipboard } from '@/lib/exporters/export-utils';
+import { useArchitectureValidation } from '@/lib/validators/validation-hooks';
+import { ValidationBanner } from '@/components/validation/ValidationMessages';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -32,6 +34,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { validate: validateArchitecture, result: validationResult } = useArchitectureValidation();
 
   // Generate export when format changes
   React.useEffect(() => {
@@ -41,6 +44,16 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
     setError(null);
 
     try {
+      // Validate architecture before export
+      const validation = validateArchitecture({ nodes, edges });
+      
+      if (!validation.valid) {
+        setError('Validation failed: ' + validation.errors.map(e => e.message).join(', '));
+        setExportContent('');
+        setIsLoading(false);
+        return;
+      }
+
       const result = exportArchitecture(selectedFormat, nodes, edges, projectName);
       setExportContent(result.content);
     } catch (err) {
@@ -49,7 +62,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [selectedFormat, isOpen, nodes, edges, projectName]);
+  }, [selectedFormat, isOpen, nodes, edges, projectName, validateArchitecture]);
 
   const handleCopy = async () => {
     if (exportContent) {
@@ -141,6 +154,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
 
           {/* Center - Preview Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
+            {validationResult && !validationResult.valid && (
+              <div className="px-6 py-4 bg-red-50 border-b border-red-200">
+                <ValidationBanner result={validationResult} />
+              </div>
+            )}
+            
             {error && (
               <div className="p-4 bg-red-50 border-b border-red-200 text-red-800 text-sm">
                 <p className="font-semibold">Export Error</p>
