@@ -1,10 +1,14 @@
 /**
  * Import Dialog Component
+ * Enhanced with validation framework
  */
 
 import { useState, useRef } from 'react';
 import { Upload, AlertCircle, CheckCircle } from 'lucide-react';
 import { parseJSONImport, parseYAMLImport, ImportResult } from '@/lib/import-service';
+import { useImportValidation } from '@/lib/validators/validation-hooks';
+import { ValidationBanner } from '@/components/validation';
+import { ExportFormat } from '@/lib/exporters';
 
 interface ImportDialogProps {
   isOpen: boolean;
@@ -19,17 +23,46 @@ export function ImportDialog({ isOpen, onClose, onImportSuccess }: ImportDialogP
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [pasteContent, setPasteContent] = useState('');
   const [importMode, setImportMode] = useState<'file' | 'paste'>('file');
+  const [validationDismissed, setValidationDismissed] = useState(false);
+  const { validate: validateImport, result: validationResult } = useImportValidation();
+
+  const handleDetectFormat = (filename: string): ExportFormat => {
+    const lower = filename.toLowerCase();
+    if (lower.endsWith('.yaml') || lower.endsWith('.yml')) return 'yaml';
+    if (lower.endsWith('.tf')) return 'terraform';
+    if (lower.endsWith('.puml') || lower.endsWith('.plantuml')) return 'plantuml';
+    if (lower.endsWith('.json')) return 'cloudformation';
+    if (lower.endsWith('.mmd') || lower.endsWith('.mermaid')) return 'mermaid';
+    if (lower.endsWith('.c4')) return 'c4';
+    return 'yaml'; // default
+  };
 
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
     const file = files[0];
     setIsImporting(true);
+    setValidationDismissed(false);
 
     try {
       const content = await file.text();
       const filename = file.name.toLowerCase();
 
+      // Validate format first
+      const format = handleDetectFormat(filename);
+      const validation = validateImport(format, content);
+
+      if (!validation.valid) {
+        setImportResult({
+          success: false,
+          errors: validation.errors.map((e) => e.message),
+          warnings: validation.warnings.map((w) => w.message),
+        });
+        setIsImporting(false);
+        return;
+      }
+
+      // Then parse content
       let result: ImportResult;
       if (filename.endsWith('.json')) {
         result = parseJSONImport(content);
@@ -59,9 +92,27 @@ export function ImportDialog({ isOpen, onClose, onImportSuccess }: ImportDialogP
     if (!pasteContent.trim()) return;
 
     setIsImporting(true);
-    const result = pasteContent.trim().startsWith('{')
-      ? parseJSONImport(pasteContent)
-      : parseYAMLImport(pasteContent);
+    setValidationDismissed(false);
+
+    // Detect format from content
+    const format = pasteContent.trim().startsWith('{') ? ('cloudformation' as ExportFormat) : ('yaml' as ExportFormat);
+
+    // Validate first (validation is synchronous)
+    const validation = validateImport(format, pasteContent);
+
+    if (!validation.valid) {
+      setImportResult({
+        success: false,
+        errors: validation.errors.map((e) => e.message),
+        warnings: validation.warnings.map((w) => w.message),
+      });
+      setIsImporting(false);
+      return;
+    }
+
+    // Then parse
+    const result =
+      format === 'cloudformation' ? parseJSONImport(pasteContent) : parseYAMLImport(pasteContent);
 
     setImportResult(result);
     setIsImporting(false);
@@ -176,6 +227,14 @@ export function ImportDialog({ isOpen, onClose, onImportSuccess }: ImportDialogP
           </div>
         ) : (
           <div className="p-6 space-y-4">
+            {/* Validation result banner */}
+            {validationResult && !validationDismissed && (
+              <ValidationBanner
+                result={validationResult}
+                onDismiss={() => setValidationDismissed(true)}
+              />
+            )}
+
             {/* Import result */}
             {importResult.success ? (
               <div className="space-y-4">
