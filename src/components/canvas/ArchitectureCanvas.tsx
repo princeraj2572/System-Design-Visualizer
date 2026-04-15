@@ -19,6 +19,8 @@ import ZoomControls from '@/components/canvas/ZoomControls';
 import SearchBar from '@/components/canvas/SearchBar';
 import APIInfoPanel from '@/components/canvas/APIInfoPanel';
 import { ExportDialog } from '@/components/canvas/ExportDialog';
+import { ValidationPanel } from '@/components/canvas/ValidationPanel';
+import { useArchitectureValidation } from '@/lib/validators/validation-hooks';
 import { canConnect } from '@/lib/connection-rules';
 
 const nodeTypes = {
@@ -55,6 +57,7 @@ export default function ArchitectureCanvas() {
   const [minimapOffset, setMinimapOffset] = useState({ x: 1700, y: 80 });
 
   const { fitView } = useReactFlow();
+  const { validate: validateArchitecture, result: validationResult, isValidating } = useArchitectureValidation();
   const {
     nodes: storeNodes,
     edges: storeEdges,
@@ -98,6 +101,34 @@ export default function ArchitectureCanvas() {
     setNodes(reactFlowNodes);
     setEdges(reactFlowEdges);
   }, [storeNodes, storeEdges, setNodes, setEdges]);
+
+  // Real-time validation when nodes or edges change
+  useEffect(() => {
+    if (storeNodes.length > 0 || storeEdges.length > 0) {
+      // Convert store nodes to validation engine format
+      const validationNodes = storeNodes.map(node => ({
+        id: node.id,
+        type: node.type,
+        data: {
+          name: node.metadata.name,
+          description: node.metadata.description,
+          technology: node.metadata.technology,
+        },
+        position: node.position,
+      }));
+
+      // Convert store edges to validation engine format
+      const validationEdges = storeEdges.map(edge => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        label: edge.label,
+        type: edge.type,
+      }));
+
+      validateArchitecture({ nodes: validationNodes, edges: validationEdges });
+    }
+  }, [storeNodes, storeEdges, validateArchitecture]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -577,6 +608,12 @@ export default function ArchitectureCanvas() {
         nodes={nodes}
         edges={edges}
         projectName="System Architecture"
+      />
+
+      {/* Real-time Validation Panel */}
+      <ValidationPanel
+        validationResult={validationResult}
+        isLoading={isValidating}
       />
     </div>
   );
