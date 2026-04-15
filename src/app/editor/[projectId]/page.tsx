@@ -21,7 +21,15 @@ import { AnalyticsPanel } from '@/components/canvas/AnalyticsPanel';
 import { TemplateLibrary } from '@/components/canvas/TemplateLibrary';
 import { AuditLogViewer } from '@/components/canvas/AuditLogViewer';
 import { ComplianceReporter } from '@/components/canvas/ComplianceReporter';
-import { BookOpen, FileText, Shield } from 'lucide-react';
+import { ArchitectureHealthDashboard } from '@/components/canvas/ArchitectureHealthDashboard';
+import { ComponentMetricsPanel } from '@/components/canvas/ComponentMetricsPanel';
+import { DependencyTracer } from '@/components/canvas/DependencyTracer';
+import { ComplianceDashboard } from '@/components/canvas/ComplianceDashboard';
+import { RemediationTracker } from '@/components/canvas/RemediationTracker';
+import { AdvancedCollaboration } from '@/components/canvas/AdvancedCollaboration';
+import { SharedWorkspace } from '@/components/canvas/SharedWorkspace';
+import { PerformanceDashboard } from '@/components/canvas/PerformanceDashboard';
+import { BookOpen, FileText, Shield, HeartHandshake, Zap as ZapIcon, GitBranch, CheckCircle, AlertTriangle, Users, Share2, Gauge } from 'lucide-react';
 
 export default function EditorPage() {
   const params = useParams();
@@ -41,6 +49,14 @@ export default function EditorPage() {
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
   const [showAuditLog, setShowAuditLog] = useState(false);
   const [showCompliance, setShowCompliance] = useState(false);
+  const [showHealthDashboard, setShowHealthDashboard] = useState(false);
+  const [showComponentMetrics, setShowComponentMetrics] = useState(false);
+  const [showDependencyTracer, setShowDependencyTracer] = useState(false);
+  const [showComplianceDashboard, setShowComplianceDashboard] = useState(false);
+  const [showRemediationTracker, setShowRemediationTracker] = useState(false);
+  const [showAdvancedCollaboration, setShowAdvancedCollaboration] = useState(false);
+  const [showSharedWorkspace, setShowSharedWorkspace] = useState(false);
+  const [showPerformanceDashboard, setShowPerformanceDashboard] = useState(false);
 
   const load = useArchitectureStore((state) => state.load);
   const saveProject = useArchitectureStore((state) => state.saveProject);
@@ -239,6 +255,50 @@ export default function EditorPage() {
 
           <div className="w-px h-6 bg-slate-300" />
 
+          <Button onClick={() => setShowHealthDashboard(true)} variant="ghost" title="Architecture health analysis">
+            <HeartHandshake size={16} className="mr-1" />
+            Health
+          </Button>
+          <Button onClick={() => setShowComponentMetrics(true)} variant="ghost" title="Component metrics and analysis">
+            <ZapIcon size={16} className="mr-1" />
+            Metrics
+          </Button>
+          <Button onClick={() => setShowDependencyTracer(true)} variant="ghost" title="Dependency analysis">
+            <GitBranch size={16} className="mr-1" />
+            Dependencies
+          </Button>
+
+          <div className="w-px h-6 bg-slate-300" />
+
+          <Button onClick={() => setShowComplianceDashboard(true)} variant="ghost" title="Compliance framework dashboard">
+            <CheckCircle size={16} className="mr-1" />
+            Frameworks
+          </Button>
+          <Button onClick={() => setShowRemediationTracker(true)} variant="ghost" title="Track remediation efforts">
+            <AlertTriangle size={16} className="mr-1" />
+            Remediation
+          </Button>
+
+          <div className="w-px h-6 bg-slate-300" />
+
+          <Button onClick={() => setShowAdvancedCollaboration(true)} variant="ghost" title="Real-time collaboration sessions">
+            <Users size={16} className="mr-1" />
+            Collaborate
+          </Button>
+          <Button onClick={() => setShowSharedWorkspace(true)} variant="ghost" title="Share workspace with team members">
+            <Share2 size={16} className="mr-1" />
+            Share
+          </Button>
+
+          <div className="w-px h-6 bg-slate-300" />
+
+          <Button onClick={() => setShowPerformanceDashboard(true)} variant="ghost" title="Monitor performance metrics">
+            <Gauge size={16} className="mr-1" />
+            Performance
+          </Button>
+
+          <div className="w-px h-6 bg-slate-300" />
+
           <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Save'}
           </Button>
@@ -398,6 +458,68 @@ export default function EditorPage() {
         isOpen={showCompliance}
         onClose={() => setShowCompliance(false)}
       />
+
+      {/* Architecture Health Dashboard */}
+      {showHealthDashboard && (
+        <ArchitectureHealthDashboard onClose={() => setShowHealthDashboard(false)} />
+      )}
+
+      {/* Component Metrics Panel */}
+      {showComponentMetrics && (
+        <ComponentMetricsPanel onClose={() => setShowComponentMetrics(false)} />
+      )}
+
+      {/* Dependency Tracer */}
+      {showDependencyTracer && (
+        <DependencyTracer onClose={() => setShowDependencyTracer(false)} />
+      )}
+
+      {/* Compliance Dashboard */}
+      {showComplianceDashboard && (
+        <ComplianceDashboard
+          projectId={projectId}
+          projectName={projectName}
+          isOpen={showComplianceDashboard}
+          onClose={() => setShowComplianceDashboard(false)}
+        />
+      )}
+
+      {/* Remediation Tracker */}
+      {showRemediationTracker && (
+        <RemediationTracker
+          projectId={projectId}
+          isOpen={showRemediationTracker}
+          onClose={() => setShowRemediationTracker(false)}
+        />
+      )}
+
+      {/* Advanced Collaboration */}
+      {showAdvancedCollaboration && (
+        <AdvancedCollaboration
+          projectId={projectId}
+          isOpen={showAdvancedCollaboration}
+          onClose={() => setShowAdvancedCollaboration(false)}
+          currentUserId={userId || undefined}
+        />
+      )}
+
+      {/* Shared Workspace */}
+      {showSharedWorkspace && (
+        <SharedWorkspace
+          projectId={projectId}
+          projectName={projectName}
+          isOpen={showSharedWorkspace}
+          onClose={() => setShowSharedWorkspace(false)}
+        />
+      )}
+
+      {/* Performance Dashboard */}
+      {showPerformanceDashboard && (
+        <PerformanceDashboard
+          isOpen={showPerformanceDashboard}
+          onClose={() => setShowPerformanceDashboard(false)}
+        />
+      )}
     </div>
   );
 }

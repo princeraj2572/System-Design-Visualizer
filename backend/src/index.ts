@@ -11,6 +11,8 @@ import { errorHandler } from '@/middleware/errorHandler';
 import { runMigrations } from '@/migrations';
 import projectRoutes from '@/routes/projectRoutes';
 import userRoutes from '@/routes/userRoutes';
+import auditRoutes from '@/routes/auditRoutes';
+import complianceRoutes from '@/routes/complianceRoutes';
 import { initializeWebSocket } from '@/realtime/websocket';
 
 dotenv.config();
@@ -34,6 +36,8 @@ app.get('/health', (_req, res) => {
 // API v1 Routes
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/projects', projectRoutes);
+app.use('/api/v1/audit', auditRoutes);
+app.use('/api/v1/compliance', complianceRoutes);
 
 // 404 Handler
 app.use((_req, res) => {
