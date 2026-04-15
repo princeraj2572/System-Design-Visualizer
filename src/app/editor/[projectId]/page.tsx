@@ -9,9 +9,8 @@ import ArchitectureCanvas from '@/components/canvas/ArchitectureCanvas';
 import NodePalette from '@/components/canvas/NodePalette';
 import HierarchyPanel from '@/components/canvas/HierarchyPanel';
 import PropertiesPanel from '@/components/canvas/PropertiesPanel';
-import Button from '@/components/ui/Button';
+import ToolbarNew from '@/components/ui/ToolbarNew';
 import { layoutNodesHierarchical } from '@/lib/layout-engine';
-import { Zap, Download, Upload, BarChart3 } from 'lucide-react';
 import { useRealtime } from '@/hooks/useRealtime';
 import PresenceIndicator from '@/components/realtime/PresenceIndicator';
 import RemoteCursorsOverlay from '@/components/realtime/RemoteCursorsOverlay';
@@ -29,7 +28,6 @@ import { RemediationTracker } from '@/components/canvas/RemediationTracker';
 import { AdvancedCollaboration } from '@/components/canvas/AdvancedCollaboration';
 import { SharedWorkspace } from '@/components/canvas/SharedWorkspace';
 import { PerformanceDashboard } from '@/components/canvas/PerformanceDashboard';
-import { BookOpen, FileText, Shield, HeartHandshake, Zap as ZapIcon, GitBranch, CheckCircle, AlertTriangle, Users, Share2, Gauge } from 'lucide-react';
 
 export default function EditorPage() {
   const params = useParams();
@@ -37,10 +35,8 @@ export default function EditorPage() {
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(!!projectId);
-  const [showHierarchy, setShowHierarchy] = useState(true);
   const [rightPanelWidth, setRightPanelWidth] = useState(320);
   const [isResizing, setIsResizing] = useState(false);
-  const [isLayouting, setIsLayouting] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -142,11 +138,6 @@ export default function EditorPage() {
     }
   };
 
-  const handleExport = async () => {
-    if (!projectId) return;
-    setShowExportDialog(true);
-  };
-
   const handleImportSuccess = async (project: any) => {
     try {
       // Load imported project data into canvas
@@ -178,7 +169,6 @@ export default function EditorPage() {
       return;
     }
 
-    setIsLayouting(true);
     try {
       // Apply hierarchical layout
       const { nodes: layoutedNodes } = layoutNodesHierarchical(nodes, edges, {
@@ -197,129 +187,30 @@ export default function EditorPage() {
       setError('');
     } catch (err: any) {
       setError('Failed to auto-layout: ' + err.message);
-    } finally {
-      setIsLayouting(false);
     }
   };
 
   return (
     <div className="w-full h-screen flex flex-col bg-slate-50">
-      {/* Toolbar */}
-      <div className="bg-white border-b border-slate-200 shadow-sm p-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">{projectName || 'Untitled Project'}</h1>
-          <p className="text-sm text-slate-600">System Design Visualizer</p>
-        </div>
-
-        <div className="flex gap-3 items-center">
-          <Button onClick={() => window.history.back()} variant="ghost">
-            Back
-          </Button>
-          <Button onClick={handleAutoLayout} disabled={isLayouting || nodes.length === 0} title="Auto arrange nodes in hierarchy (Ctrl+Shift+L)">
-            <Zap size={16} className="mr-1" />
-            {isLayouting ? 'Layouting...' : 'Auto Layout'}
-          </Button>
-          <Button onClick={() => setShowHierarchy(!showHierarchy)} variant="ghost">
-            {showHierarchy ? 'Hide' : 'Show'} Hierarchy
-          </Button>
-
-          <div className="w-px h-6 bg-slate-300" />
-
-          <Button onClick={handleExport} variant="ghost" title="Export architecture">
-            <Download size={16} className="mr-1" />
-            Export
-          </Button>
-          <Button onClick={() => setShowImportDialog(true)} variant="ghost" title="Import architecture">
-            <Upload size={16} className="mr-1" />
-            Import
-          </Button>
-          <Button onClick={() => setShowAnalytics(true)} variant="ghost" title="View analytics">
-            <BarChart3 size={16} className="mr-1" />
-            Analytics
-          </Button>
-
-          <div className="w-px h-6 bg-slate-300" />
-
-          <Button onClick={() => setShowTemplateLibrary(true)} variant="ghost" title="Browse architecture templates">
-            <BookOpen size={16} className="mr-1" />
-            Templates
-          </Button>
-          <Button onClick={() => setShowAuditLog(true)} variant="ghost" title="View audit log">
-            <FileText size={16} className="mr-1" />
-            Audit Log
-          </Button>
-          <Button onClick={() => setShowCompliance(true)} variant="ghost" title="Compliance reports">
-            <Shield size={16} className="mr-1" />
-            Compliance
-          </Button>
-
-          <div className="w-px h-6 bg-slate-300" />
-
-          <Button onClick={() => setShowHealthDashboard(true)} variant="ghost" title="Architecture health analysis">
-            <HeartHandshake size={16} className="mr-1" />
-            Health
-          </Button>
-          <Button onClick={() => setShowComponentMetrics(true)} variant="ghost" title="Component metrics and analysis">
-            <ZapIcon size={16} className="mr-1" />
-            Metrics
-          </Button>
-          <Button onClick={() => setShowDependencyTracer(true)} variant="ghost" title="Dependency analysis">
-            <GitBranch size={16} className="mr-1" />
-            Dependencies
-          </Button>
-
-          <div className="w-px h-6 bg-slate-300" />
-
-          <Button onClick={() => setShowComplianceDashboard(true)} variant="ghost" title="Compliance framework dashboard">
-            <CheckCircle size={16} className="mr-1" />
-            Frameworks
-          </Button>
-          <Button onClick={() => setShowRemediationTracker(true)} variant="ghost" title="Track remediation efforts">
-            <AlertTriangle size={16} className="mr-1" />
-            Remediation
-          </Button>
-
-          <div className="w-px h-6 bg-slate-300" />
-
-          <Button onClick={() => setShowAdvancedCollaboration(true)} variant="ghost" title="Real-time collaboration sessions">
-            <Users size={16} className="mr-1" />
-            Collaborate
-          </Button>
-          <Button onClick={() => setShowSharedWorkspace(true)} variant="ghost" title="Share workspace with team members">
-            <Share2 size={16} className="mr-1" />
-            Share
-          </Button>
-
-          <div className="w-px h-6 bg-slate-300" />
-
-          <Button onClick={() => setShowPerformanceDashboard(true)} variant="ghost" title="Monitor performance metrics">
-            <Gauge size={16} className="mr-1" />
-            Performance
-          </Button>
-
-          <div className="w-px h-6 bg-slate-300" />
-
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
-          
-          {/* PHASE 1 Keyboard Shortcuts Info */}
-          <div className="ml-4 text-xs text-slate-600 border-l border-slate-300 pl-3 py-1">
-            <details className="cursor-help hover:text-slate-900">
-              <summary className="font-semibold">⌨️ Shortcuts</summary>
-              <div className="absolute bg-white border border-slate-200 rounded-lg p-3 mt-1 shadow-lg z-50 text-xs whitespace-nowrap">
-                <div><kbd>G</kbd> Toggle Grid</div>
-                <div><kbd>Shift</kbd>+<kbd>G</kbd> Snap-to-Grid</div>
-                <div><kbd>M</kbd> Toggle Minimap</div>
-                <div><kbd>F</kbd> Focus Mode</div>
-                <div><kbd>Ctrl</kbd>+<kbd>F</kbd> Search</div>
-                <div><kbd>Delete</kbd> Remove Component</div>
-                <div><kbd>Ctrl</kbd>+<kbd>±</kbd> Zoom</div>
-              </div>
-            </details>
-          </div>
-        </div>
-      </div>
+      {/* Redesigned Toolbar */}
+      <ToolbarNew
+        projectName={projectName}
+        isSaving={isSaving}
+        onLayoutClick={handleAutoLayout}
+        onExportClick={() => setShowExportDialog(true)}
+        onAnalyticsClick={handleSave}
+        onShowTemplates={() => setShowTemplateLibrary(true)}
+        onShowAuditLog={() => setShowAuditLog(true)}
+        onShowCompliance={() => setShowCompliance(true)}
+        onShowHealth={() => setShowHealthDashboard(true)}
+        onShowMetrics={() => setShowComponentMetrics(true)}
+        onShowDependencies={() => setShowDependencyTracer(true)}
+        onShowFrameworks={() => setShowComplianceDashboard(true)}
+        onShowRemediation={() => setShowRemediationTracker(true)}
+        onShowCollaboration={() => setShowAdvancedCollaboration(true)}
+        onShowSharedWorkspace={() => setShowSharedWorkspace(true)}
+        onShowPerformance={() => setShowPerformanceDashboard(true)}
+      />
 
       {/* Error */}
       {error && (
@@ -395,9 +286,9 @@ export default function EditorPage() {
             {/* Panel Content */}
             {selectedNode ? (
               <PropertiesPanel />
-            ) : showHierarchy ? (
+            ) : (
               <HierarchyPanel />
-            ) : null}
+            )}
           </div>
 
           {/* Global mouse up listener for resizing */}

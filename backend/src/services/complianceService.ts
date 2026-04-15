@@ -201,8 +201,8 @@ export class ComplianceService {
       // Calculate score and status
       const checks = frameworkData.checks;
       const passedCount = checks.filter((c) => c.status === 'PASS').length;
-      const failedCount = checks.filter((c) => c.status === 'FAIL').length;
-      const warningCount = checks.filter((c) => c.status === 'WARNING').length;
+      checks.filter((c) => c.status === 'FAIL').length;
+      checks.filter((c) => c.status === 'WARNING').length;
 
       const score = Math.round((passedCount / checks.length) * 100);
       let status: 'COMPLIANT' | 'MOSTLY_COMPLIANT' | 'PARTIAL' | 'NON_COMPLIANT' = 'COMPLIANT';

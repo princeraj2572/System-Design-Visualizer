@@ -5,7 +5,6 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { ComplianceService } from '@/services/complianceService';
-import logger from '@/utils/logger';
 
 const complianceService = new ComplianceService();
 

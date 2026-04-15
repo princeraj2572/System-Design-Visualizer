@@ -5,7 +5,6 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { AuditService } from '@/services/auditService';
-import logger from '@/utils/logger';
 
 const auditService = new AuditService();
 
@@ -117,7 +116,6 @@ export async function createAuditLog(req: Request, res: Response, next: NextFunc
 export async function exportAuditLogs(req: Request, res: Response, next: NextFunction) {
   try {
     const { projectId } = req.params;
-    const { format = 'csv' } = req.query;
 
     const csv = await auditService.exportAuditLogsAsCSV(projectId);
 
