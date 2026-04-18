@@ -7,6 +7,7 @@ import { useArchitectureStore } from '@/store/architecture-store';
 import { projectService } from '@/lib/project-service';
 import ArchitectureCanvas from '@/components/canvas/ArchitectureCanvas';
 import ToolbarNew from '@/components/ui/ToolbarNew';
+import EnhancedToolbar from '@/components/canvas/EnhancedToolbar';
 import ResizableSidebar from '@/components/canvas/ResizableSidebar';
 import BottomToolbar from '@/components/canvas/BottomToolbar';
 import ViewModeTabs from '@/components/canvas/ViewModeTabs';
@@ -330,8 +331,11 @@ export default function EditorPage() {
                   }}
                 >
                   {viewMode === 'canvas' || viewMode === 'both' ? (
-                    <div className="flex-1 overflow-hidden">
-                      <ArchitectureCanvas />
+                    <div className="flex-1 overflow-hidden flex flex-col">
+                      <EnhancedToolbar />
+                      <div className="flex-1 overflow-hidden">
+                        <ArchitectureCanvas />
+                      </div>
                     </div>
                   ) : null}
 

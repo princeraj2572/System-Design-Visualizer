@@ -24,6 +24,7 @@ import { PerformanceMonitor } from '@/components/canvas/PerformanceMonitor';
 import { useArchitectureValidation } from '@/lib/validators/validation-hooks';
 import { useViewportCulling, useViewportBounds, usePerformanceMonitor } from '@/hooks/usePerformanceOptimization';
 import { canConnect } from '@/lib/connection-rules';
+import { findAvailablePosition, snapToGrid } from '@/utils/drop-placement';
 
 const nodeTypes = {
   architecture: ArchitectureNode,
@@ -101,6 +102,12 @@ export default function ArchitectureCanvas() {
         name: node.metadata.name,
         description: node.metadata.description,
         technology: node.metadata.technology,
+        latency: node.metadata.latency,
+        throughput: node.metadata.throughput,
+        replicas: node.metadata.replicas,
+        region: node.metadata.region,
+        tier: node.metadata.tier,
+        tags: node.metadata.tags,
       },
     }));
 
@@ -392,13 +399,25 @@ export default function ArchitectureCanvas() {
 
         const { type } = JSON.parse(data);
         const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
+        const droppedX = event.clientX - rect.left;
+        const droppedY = event.clientY - rect.top;
+
+        // Find collision-free position with grid snapping
+        const position = findAvailablePosition(
+          { x: droppedX, y: droppedY },
+          storeNodes,
+          {
+            gridSize: gridSize,
+            nodeWidth: 140,
+            nodeHeight: 100,
+            padding: 15,
+          }
+        );
 
         const newNode: Node = {
           id: `node-${Date.now()}`,
           type: 'architecture',
-          position: { x, y },
+          position,
           data: {
             type,
             name: `${type
@@ -413,7 +432,7 @@ export default function ArchitectureCanvas() {
         setNodes((nds) => [...nds, newNode]);
         addNode({
           type: type as any,
-          position: { x, y },
+          position,
           metadata: {
             name: `${type
               .split('-')
@@ -427,7 +446,7 @@ export default function ArchitectureCanvas() {
         console.error('Error parsing dropped data:', error);
       }
     },
-    [setNodes, addNode]
+    [setNodes, addNode, storeNodes, gridSize]
   );
 
   const handleNodeClick = useCallback(

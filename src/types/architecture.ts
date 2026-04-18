@@ -60,6 +60,15 @@ export interface NodeData {
     name: string;
     description: string;
     technology: string;
+    // Performance metrics
+    latency?: number; // ms
+    throughput?: number; // requests per second
+    // Deployment info
+    replicas?: number; // number of instances
+    region?: string; // geographic region
+    tier?: 'critical' | 'high' | 'medium' | 'low';
+    tags?: string[];
+    // Custom config
     config?: Record<string, unknown>;
   };
   isCollapsed?: boolean;
@@ -89,6 +98,17 @@ export interface Edge {
   target: string;
   label: string;
   type?: 'http' | 'grpc' | 'message-queue' | 'database' | 'event';
+  // Enhanced edge metadata
+  protocol?: 'http' | 'https' | 'grpc' | 'websocket' | 'tcp' | 'udp' | 'amqp' | 'mqtt' | 'kafka' | string;
+  latency?: number; // ms
+  bandwidth?: number; // Mbps
+  syncType?: 'sync' | 'async';
+  retryPolicy?: {
+    maxRetries?: number;
+    backoffMs?: number;
+  };
+  authentication?: 'none' | 'mTLS' | 'oauth' | 'api-key';
+  documentation?: string;
 }
 
 export interface Project {
@@ -112,3 +132,91 @@ export interface ArchitectureState {
   historyIndex: number;
   theme: 'light' | 'dark';
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SPEC-ALIGNED TYPES (extends existing structure for new UI/components)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type NodeShape = 'rectangle' | 'cylinder' | 'hexagon' | 'parallelogram' | 'pill' | 'diamond' | 'cloud' | 'group';
+export type NodeCategory = 'compute' | 'storage' | 'messaging' | 'network' | 'client' | 'infrastructure';
+export type EditorViewMode = 'document' | 'both' | 'canvas';
+export type RightPanelTab = 'properties' | 'connections' | 'documentation';
+export type NodeColorKey = 'blue' | 'green' | 'amber' | 'purple' | 'coral' | 'teal' | 'gray';
+
+export type EdgeProtocol = 'REST' | 'gRPC' | 'GraphQL' | 'WebSocket' | 'AMQP' | 'Kafka' | 'SQL' | 'TCP' | 'UDP' | 'HTTPS' | 'custom';
+export type EdgeStyle = 'solid' | 'dashed' | 'dotted';
+
+/** Extended editor state for spec-based UI */
+export interface EditorState {
+  projectId: string;
+  projectName: string;
+  viewMode: EditorViewMode;
+  selectedNodeId: string | null;
+  selectedEdgeId: string | null;
+  rightPanelTab: RightPanelTab;
+  isGridVisible: boolean;
+  isMinimapVisible: boolean;
+  sidebarSearchQuery: string;
+  isSidebarCollapsed: boolean;
+}
+
+/** Extended node data for spec-based rendering */
+export interface NodeDataExtended extends NodeData {
+  data?: {
+    label: string;
+    sublabel: string;
+    category: NodeCategory;
+    shape: NodeShape;
+    icon: string;
+    description: string;
+    notes: string;
+    tags: string[];
+    targetRps?: string;
+    sla?: string;
+    replicas?: number;
+    region?: string;
+    tier?: 'critical' | 'high' | 'medium' | 'low';
+    color: NodeColorKey;
+    isLocked: boolean;
+    isCollapsed: boolean;
+  };
+}
+
+/** Extended edge data for spec-based rendering */
+export interface EdgeDataExtended extends Edge {
+  data?: {
+    protocol: EdgeProtocol;
+    label?: string;
+    latency?: string;
+    bandwidth?: string;
+    syncType: 'sync' | 'async';
+    deliveryGuarantee?: 'at-most-once' | 'at-least-once' | 'exactly-once';
+    animated: boolean;
+    style: EdgeStyle;
+    color: string;
+  };
+}
+
+/** Component library definition */
+export interface ComponentDefinition {
+  id: string;
+  label: string;
+  sublabel: string;
+  category: NodeCategory;
+  shape: NodeShape;
+  icon: string;
+  defaultColor: NodeColorKey;
+  defaultData: Partial<NodeDataExtended>;
+  suggestedTargets: string[];
+  suggestedSources: string[];
+}
+
+/** Connection suggestion for right panel */
+export interface ConnectionSuggestion {
+  componentId: string;
+  label: string;
+  icon: string;
+  reason: string;
+  direction: 'add-target' | 'add-source';
+}
+

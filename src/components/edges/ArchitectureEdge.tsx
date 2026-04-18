@@ -9,6 +9,11 @@ import { EDGE_TYPES } from '@/utils/design-system';
 interface ArchitectureEdgeData {
   type?: keyof typeof EDGE_TYPES;
   label?: string;
+  protocol?: string;
+  latency?: number;
+  bandwidth?: number;
+  syncType?: 'sync' | 'async';
+  authentication?: string;
 }
 
 const ArchitectureEdgeComponent: React.FC<EdgeProps<ArchitectureEdgeData>> = ({
@@ -43,6 +48,9 @@ const ArchitectureEdgeComponent: React.FC<EdgeProps<ArchitectureEdgeData>> = ({
     () => (data?.type ? EDGE_TYPES[data.type]?.color : '#64748b'),
     [data?.type]
   );
+
+  // Determine if this is an async flow
+  const isAsync = data?.syncType === 'async';
   
   const strokeWidth = selected ? 4 : isHovering ? 3 : 2;
   const strokeOpacity = selected ? 1 : isHovering ? 0.9 : 0.7;
@@ -79,8 +87,13 @@ const ArchitectureEdgeComponent: React.FC<EdgeProps<ArchitectureEdgeData>> = ({
         }}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
-        strokeDasharray={isHovering ? '5,5' : 'none'}
-        strokeDashoffset={isHovering ? '10' : '0'}
+        strokeDasharray={isAsync ? '5,5' : isHovering ? '5,5' : 'none'}
+        strokeDashoffset={isAsync ? '10' : isHovering ? '10' : '0'}
+        style={{
+          animation: isAsync ? 'dashFlow 0.5s linear infinite' : undefined,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+        } as any}
       />
       
       {/* Edge label with background */}
@@ -88,10 +101,10 @@ const ArchitectureEdgeComponent: React.FC<EdgeProps<ArchitectureEdgeData>> = ({
         <g>
           {/* Label background */}
           <rect
-            x={(sourceX + targetX) / 2 - 45}
-            y={(sourceY + targetY) / 2 - 18}
-            width="90"
-            height="18"
+            x={(sourceX + targetX) / 2 - 50}
+            y={(sourceY + targetY) / 2 - 20}
+            width="100"
+            height="22"
             fill="white"
             stroke={edgeColor}
             strokeWidth="1"
@@ -103,9 +116,9 @@ const ArchitectureEdgeComponent: React.FC<EdgeProps<ArchitectureEdgeData>> = ({
           {/* Label text */}
           <text
             x={(sourceX + targetX) / 2}
-            y={(sourceY + targetY) / 2 + 4}
+            y={(sourceY + targetY) / 2 + 5}
             textAnchor="middle"
-            fontSize="12"
+            fontSize="11"
             fill={edgeColor}
             fontWeight="600"
             className="pointer-events-none select-none"
@@ -113,8 +126,78 @@ const ArchitectureEdgeComponent: React.FC<EdgeProps<ArchitectureEdgeData>> = ({
           >
             {data.label}
           </text>
+
+          {/* Additional metadata on hover */}
+          {(selected || isHovering) && (
+            <g>
+              {/* Protocol badge */}
+              {data.protocol && (
+                <g>
+                  <rect
+                    x={(sourceX + targetX) / 2 - 35}
+                    y={(sourceY + targetY) / 2 + 15}
+                    width="70"
+                    height="16"
+                    fill={edgeColor}
+                    fillOpacity="0.1"
+                    stroke={edgeColor}
+                    strokeWidth="0.5"
+                    rx="2"
+                  />
+                  <text
+                    x={(sourceX + targetX) / 2}
+                    y={(sourceY + targetY) / 2 + 26}
+                    textAnchor="middle"
+                    fontSize="9"
+                    fill={edgeColor}
+                    fontWeight="500"
+                    className="pointer-events-none"
+                  >
+                    {data.protocol}
+                  </text>
+                </g>
+              )}
+
+              {/* Latency badge */}
+              {data.latency && (
+                <g>
+                  <rect
+                    x={(sourceX + targetX) / 2 - 35}
+                    y={(sourceY + targetY) / 2 + 35}
+                    width="70"
+                    height="16"
+                    fill="#fbbf24"
+                    fillOpacity="0.1"
+                    stroke="#fbbf24"
+                    strokeWidth="0.5"
+                    rx="2"
+                  />
+                  <text
+                    x={(sourceX + targetX) / 2}
+                    y={(sourceY + targetY) / 2 + 46}
+                    textAnchor="middle"
+                    fontSize="9"
+                    fill="#92400e"
+                    fontWeight="500"
+                    className="pointer-events-none"
+                  >
+                    {data.latency}ms
+                  </text>
+                </g>
+              )}
+            </g>
+          )}
         </g>
       )}
+
+      {/* CSS for animation */}
+      <style>{`
+        @keyframes dashFlow {
+          to {
+            stroke-dashoffset: 0;
+          }
+        }
+      `}</style>
     </>
   );
 };

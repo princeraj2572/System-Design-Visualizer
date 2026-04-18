@@ -1,0 +1,11 @@
+/* SmartEdge animations */
+
+@keyframes dashFlow {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+.smart-edge-async {
+  animation: dashFlow 20s linear infinite;
+}

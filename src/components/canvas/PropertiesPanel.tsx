@@ -20,6 +20,12 @@ export const PropertiesPanel: React.FC = () => {
     name: '',
     description: '',
     technology: '',
+    latency: 0,
+    throughput: 0,
+    replicas: 1,
+    region: '',
+    tier: 'medium' as const,
+    tags: '' as string,
   });
 
   const node = nodes.find((n) => n.id === selectedNode);
@@ -30,10 +36,26 @@ export const PropertiesPanel: React.FC = () => {
         name: node.metadata.name,
         description: node.metadata.description || '',
         technology: node.metadata.technology || '',
+        latency: node.metadata.latency || 0,
+        throughput: node.metadata.throughput || 0,
+        replicas: node.metadata.replicas || 1,
+        region: node.metadata.region || '',
+        tier: (node.metadata.tier || 'medium') as any,
+        tags: (node.metadata.tags || []).join(', '),
       });
       setErrors({});
     } else {
-      setFormData({ name: '', description: '', technology: '' });
+      setFormData({ 
+        name: '', 
+        description: '', 
+        technology: '',
+        latency: 0,
+        throughput: 0,
+        replicas: 1,
+        region: '',
+        tier: 'medium',
+        tags: '',
+      });
     }
   }, [node, selectedNode]);
 
@@ -75,6 +97,15 @@ export const PropertiesPanel: React.FC = () => {
           name: formData.name.trim(),
           description: formData.description.trim(),
           technology: formData.technology.trim(),
+          latency: formData.latency > 0 ? formData.latency : undefined,
+          throughput: formData.throughput > 0 ? formData.throughput : undefined,
+          replicas: formData.replicas > 0 ? formData.replicas : 1,
+          region: formData.region.trim() || undefined,
+          tier: formData.tier as any,
+          tags: formData.tags
+            .split(',')
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0),
         },
       });
     } catch (error) {
@@ -184,6 +215,102 @@ export const PropertiesPanel: React.FC = () => {
                   {formData.description.length}/200
                 </span>
               )}
+            </div>
+
+            {/* Performance Metrics Section */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-3">
+              <p className="text-xs font-semibold text-blue-900 mb-2">Performance & Deployment</p>
+              
+              {/* Latency */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Latency (ms)
+                </label>
+                <input
+                  type="number"
+                  value={formData.latency}
+                  onChange={(e) => handleChange('latency', Number(e.target.value) || 0)}
+                  min="0"
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  placeholder="e.g., 100"
+                />
+              </div>
+
+              {/* Throughput */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Throughput (RPS)
+                </label>
+                <input
+                  type="number"
+                  value={formData.throughput}
+                  onChange={(e) => handleChange('throughput', Number(e.target.value) || 0)}
+                  min="0"
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  placeholder="e.g., 10000"
+                />
+              </div>
+
+              {/* Replicas */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Replicas/Instances
+                </label>
+                <input
+                  type="number"
+                  value={formData.replicas}
+                  onChange={(e) => handleChange('replicas', Number(e.target.value) || 1)}
+                  min="1"
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  placeholder="1"
+                />
+              </div>
+
+              {/* Region */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Region
+                </label>
+                <input
+                  type="text"
+                  value={formData.region}
+                  onChange={(e) => handleChange('region', e.target.value)}
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  placeholder="e.g., us-east-1, eu-west-1"
+                />
+              </div>
+
+              {/* Tier */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Criticality Tier
+                </label>
+                <select
+                  value={formData.tier}
+                  onChange={(e) => handleChange('tier', e.target.value)}
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Tags
+                </label>
+                <input
+                  type="text"
+                  value={formData.tags}
+                  onChange={(e) => handleChange('tags', e.target.value)}
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  placeholder="e.g., external, paid, vendor"
+                />
+                <p className="text-xs text-slate-500 mt-1">Separate with commas</p>
+              </div>
             </div>
 
             {/* Metadata */}
