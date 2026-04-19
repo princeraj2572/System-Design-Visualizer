@@ -1,9 +1,20 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
-import { Excalidraw, MainMenu, convertToExcalidrawElements } from 'excalidraw';
-import type { ExcalidrawAPI } from 'excalidraw/types';
-import 'excalidraw/excalidraw.css';
+import dynamic from 'next/dynamic';
+import ExcalidrawStyles from './ExcalidrawStyles';
+
+// Dynamically import Excalidraw to avoid SSR issues
+const ExcalidrawComponent = dynamic(
+  async () => {
+    const excalidrawModule = await import('excalidraw');
+    return excalidrawModule.Excalidraw;
+  },
+  { 
+    ssr: false,
+    loading: () => <div className="w-full h-full bg-gray-100 flex items-center justify-center">Loading Excalidraw...</div>
+  }
+);
 
 interface ExcalidrawCanvasWrapperProps {
   onElementsChange?: (elements: any[]) => void;
@@ -26,7 +37,7 @@ export const ExcalidrawCanvasWrapper: React.FC<ExcalidrawCanvasWrapperProps> = (
   initialData,
   readOnly = false,
 }) => {
-  const excalidrawAPI = useRef<ExcalidrawAPI>(null);
+  const excalidrawAPI = useRef<any>(null);
 
   useEffect(() => {
     if (excalidrawAPI.current) {
@@ -43,25 +54,32 @@ export const ExcalidrawCanvasWrapper: React.FC<ExcalidrawCanvasWrapperProps> = (
     }
   };
 
+  if (!typeof window !== 'undefined') {
+    return <div className="w-full h-full bg-gray-100 flex items-center justify-center">Loading...</div>;
+  }
+
   return (
-    <div className="w-full h-full bg-white rounded-lg shadow-lg overflow-hidden">
-      <Excalidraw
-        ref={excalidrawAPI}
-        onChange={handleChange}
-        isCollaborating={false}
-        autoFocus={true}
-        theme="light"
-        gridModeEnabled={true}
-        zenModeEnabled={false}
-        viewBackgroundColor="#ffffff"
-        renderAction={() => null}
-        UIOptions={{
-          canvasMenu: {
-            defaultItems: ['clearReset', 'export', 'saveAsImage'],
-          },
-        }}
-      />
-    </div>
+    <>
+      <ExcalidrawStyles />
+      <div className="w-full h-full bg-white rounded-lg shadow-lg overflow-hidden excalidraw-container">
+        <ExcalidrawComponent
+          ref={excalidrawAPI}
+          onChange={handleChange}
+          isCollaborating={false}
+          autoFocus={true}
+          theme="light"
+          gridModeEnabled={true}
+          zenModeEnabled={false}
+          viewBackgroundColor="#ffffff"
+          renderAction={() => null}
+          UIOptions={{
+            canvasMenu: {
+              defaultItems: ['clearReset', 'export', 'saveAsImage'],
+            },
+          }}
+        />
+      </div>
+    </>
   );
 };
 

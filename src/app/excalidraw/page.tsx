@@ -1,8 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import ExcalidrawCanvasWrapper from '@/components/canvas/ExcalidrawCanvasWrapper';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import ExcalidrawStyles from '@/components/canvas/ExcalidrawStyles';
+
+// Dynamically import ExcalidrawCanvasWrapper
+const ExcalidrawCanvasWrapper = dynamic(
+  () => import('@/components/canvas/ExcalidrawCanvasWrapper'),
+  { 
+    ssr: false,
+    loading: () => <div className="flex-1 bg-white rounded-lg shadow-lg flex items-center justify-center">Loading canvas...</div>
+  }
+);
 
 /**
  * Excalidraw Integration Test Page
@@ -36,6 +46,7 @@ export default function ExcalidrawPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
+      <ExcalidrawStyles />
       {/* Header */}
       <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 shadow-lg">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
