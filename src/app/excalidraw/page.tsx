@@ -1,18 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import ExcalidrawStyles from '@/components/canvas/ExcalidrawStyles';
-
-// Dynamically import ExcalidrawCanvasWrapper
-const ExcalidrawCanvasWrapper = dynamic(
-  () => import('@/components/canvas/ExcalidrawCanvasWrapper'),
-  { 
-    ssr: false,
-    loading: () => <div className="flex-1 bg-white rounded-lg shadow-lg flex items-center justify-center">Loading canvas...</div>
-  }
-);
+import { ExcalidrawCanvasWrapper } from '@/components/canvas/ExcalidrawCanvasWrapper';
 
 /**
  * Excalidraw Integration Test Page

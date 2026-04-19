@@ -1,20 +1,8 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
-import dynamic from 'next/dynamic';
+import React, { useRef, useEffect, useState } from 'react';
+import SimpleDrawingCanvas from './SimpleDrawingCanvas';
 import ExcalidrawStyles from './ExcalidrawStyles';
-
-// Dynamically import Excalidraw to avoid SSR issues
-const ExcalidrawComponent = dynamic(
-  async () => {
-    const excalidrawModule = await import('excalidraw');
-    return excalidrawModule.Excalidraw;
-  },
-  { 
-    ssr: false,
-    loading: () => <div className="w-full h-full bg-gray-100 flex items-center justify-center">Loading Excalidraw...</div>
-  }
-);
 
 interface ExcalidrawCanvasWrapperProps {
   onElementsChange?: (elements: any[]) => void;
@@ -37,47 +25,42 @@ export const ExcalidrawCanvasWrapper: React.FC<ExcalidrawCanvasWrapperProps> = (
   initialData,
   readOnly = false,
 }) => {
-  const excalidrawAPI = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    if (excalidrawAPI.current) {
-      // Set initial data if provided
-      if (initialData) {
-        excalidrawAPI.current.updateData(initialData);
-      }
-    }
-  }, [initialData]);
+    // Set flag that we're on client
+    setIsClient(true);
+    setIsLoaded(true);
+  }, []);
 
-  const handleChange = (elements: any[], appState: any, files: any) => {
-    if (onElementsChange) {
-      onElementsChange(elements);
-    }
-  };
-
-  if (!typeof window !== 'undefined') {
-    return <div className="w-full h-full bg-gray-100 flex items-center justify-center">Loading...</div>;
+  if (!isClient || !isLoaded) {
+    return (
+      <div className="w-full h-full bg-gradient-to-b from-blue-50 to-gray-100 flex flex-col items-center justify-center gap-4 p-8">
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
+        </div>
+        <p className="text-gray-600 font-medium">Initializing Drawing Canvas...</p>
+      </div>
+    );
   }
 
+  // Use simple drawing canvas as fallback
   return (
     <>
       <ExcalidrawStyles />
-      <div className="w-full h-full bg-white rounded-lg shadow-lg overflow-hidden excalidraw-container">
-        <ExcalidrawComponent
-          ref={excalidrawAPI}
-          onChange={handleChange}
-          isCollaborating={false}
-          autoFocus={true}
-          theme="light"
-          gridModeEnabled={true}
-          zenModeEnabled={false}
-          viewBackgroundColor="#ffffff"
-          renderAction={() => null}
-          UIOptions={{
-            canvasMenu: {
-              defaultItems: ['clearReset', 'export', 'saveAsImage'],
-            },
-          }}
-        />
+      <div 
+        ref={containerRef}
+        className="w-full h-full bg-white overflow-hidden"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%'
+        }}
+      >
+        <SimpleDrawingCanvas onElementsChange={onElementsChange} />
       </div>
     </>
   );
