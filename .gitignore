@@ -35,6 +35,10 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+# Documentation - Ignore all .md files except README.md
+*.md
+!README.md
+
 # OS
 Thumbs.db
 .DS_Store
