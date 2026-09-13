@@ -10,7 +10,10 @@ interface NodePaletteProps {
 
 export default function NodePalette({ onDragStart }: NodePaletteProps) {
   return (
-    <aside className="w-52 flex-shrink-0 bg-gray-900/95 border-r border-gray-800 flex flex-col overflow-hidden">
+    <aside
+      className="w-52 flex-shrink-0 border-r border-gray-800 flex flex-col overflow-hidden"
+      style={{ background: 'linear-gradient(180deg, #0c1120 0%, #080d18 100%)' }}
+    >
       {/* Header */}
       <div className="px-4 pt-3.5 pb-2.5 border-b border-gray-800">
         <h2 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">

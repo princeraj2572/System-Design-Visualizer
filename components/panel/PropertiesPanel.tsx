@@ -31,7 +31,10 @@ export default function PropertiesPanel() {
 
   if (!selectedNode) {
     return (
-      <aside className="w-60 flex-shrink-0 bg-gray-900/95 border-l border-gray-800 flex flex-col items-center justify-center gap-3">
+      <aside
+        className="w-60 flex-shrink-0 border-l border-gray-800 flex flex-col items-center justify-center gap-3"
+        style={{ background: 'linear-gradient(180deg, #0c1120 0%, #080d18 100%)' }}
+      >
         <div className="w-12 h-12 rounded-xl bg-gray-800/60 border border-gray-700/50 flex items-center justify-center">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-gray-600">
             <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -61,7 +64,10 @@ export default function PropertiesPanel() {
     'w-full bg-gray-800/80 border border-gray-700/60 rounded-lg px-2.5 py-1.5 text-[11px] text-gray-200 placeholder-gray-600 resize-none transition-all duration-150 outline-none focus:bg-gray-800 focus:border-opacity-100';
 
   return (
-    <aside className="w-60 flex-shrink-0 bg-gray-900/95 border-l border-gray-800 flex flex-col overflow-hidden">
+    <aside
+      className="w-60 flex-shrink-0 border-l border-gray-800 flex flex-col overflow-hidden"
+      style={{ background: 'linear-gradient(180deg, #0c1120 0%, #080d18 100%)' }}
+    >
       {/* Header */}
       <div className="px-3.5 py-3 border-b border-gray-800 flex items-center gap-2.5">
         {/* Accent circle + icon */}

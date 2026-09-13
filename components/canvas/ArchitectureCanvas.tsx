@@ -17,8 +17,8 @@ import { NODE_CONFIG } from '@/components/nodes/nodeConfig';
 // Defined outside AND memoized inside to survive Fast Refresh without triggering RF warning
 const defaultEdgeOptions = {
   type: 'smoothstep',
-  style: { stroke: '#6b7280', strokeWidth: 1.5 },
-  animated: false,
+  style: { stroke: '#6366f1', strokeWidth: 1.5 },
+  animated: true,
 };
 
 export default function ArchitectureCanvas() {
@@ -96,20 +96,22 @@ export default function ArchitectureCanvas() {
         style={{
           width: '100%',
           height: '100%',
-          background: isDark ? '#030712' : '#f9fafb',
+          background: isDark ? '#080d1a' : '#f8fafc',
         }}
       >
         <Background
-          variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1}
-          color={isDark ? '#1f2937' : '#d1d5db'}
+          variant={BackgroundVariant.Lines}
+          gap={24}
+          size={0.5}
+          color={isDark ? '#1a2035' : '#e5e7eb'}
         />
         <Controls
           showInteractive={false}
           style={{
-            background: isDark ? '#111827' : '#fff',
-            border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+            background: isDark ? '#0d1424' : '#fff',
+            border: `1px solid ${isDark ? '#1e2a40' : '#e5e7eb'}`,
+            borderRadius: 10,
+            boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.5)' : '0 4px 12px rgba(0,0,0,0.08)',
           }}
         />
         <MiniMap
@@ -117,23 +119,35 @@ export default function ArchitectureCanvas() {
             NODE_CONFIG[node.data?.nodeType as NodeType]?.accent ?? '#6b7280'
           }
           style={{
-            background: isDark ? '#111827' : '#fff',
-            border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+            background: isDark ? '#0d1424' : '#fff',
+            border: `1px solid ${isDark ? '#1e2a40' : '#e5e7eb'}`,
+            borderRadius: 10,
+            boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.5)' : '0 4px 12px rgba(0,0,0,0.08)',
           }}
-          maskColor={isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.6)'}
+          maskColor={isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.7)'}
+          width={150}
+          height={96}
         />
       </ReactFlow>
 
       {nodes.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center">
-            <p className="text-4xl mb-3">🏗️</p>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              Drag components from the left panel onto the canvas
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-600 mt-1">
-              Connect them by dragging between the handles on each node
-            </p>
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+          <div className="text-center flex flex-col items-center gap-3">
+            <div className="w-16 h-16 rounded-2xl bg-gray-800/60 border border-gray-700/40 flex items-center justify-center">
+              <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
+                <circle cx="6" cy="16" r="4" stroke="#4b5563" strokeWidth="1.5"/>
+                <circle cx="26" cy="7" r="3.5" stroke="#4b5563" strokeWidth="1.5"/>
+                <circle cx="26" cy="25" r="3.5" stroke="#4b5563" strokeWidth="1.5"/>
+                <line x1="10" y1="14.5" x2="22.5" y2="8.5" stroke="#374151" strokeWidth="1.2"/>
+                <line x1="10" y1="17.5" x2="22.5" y2="23.5" stroke="#374151" strokeWidth="1.2"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-gray-500">Start designing</p>
+              <p className="text-[11px] text-gray-700 mt-1">
+                Drag components from the left panel
+              </p>
+            </div>
           </div>
         </div>
       )}
