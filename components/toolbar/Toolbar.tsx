@@ -244,7 +244,10 @@ export default function Toolbar() {
   }, [clearCanvas]);
 
   return (
-    <header className="h-11 flex-shrink-0 bg-gray-900/95 border-b border-gray-800 flex items-center px-3 gap-0.5 relative z-20 backdrop-blur-sm">
+    <header
+      className="h-11 flex-shrink-0 border-b border-gray-800 flex items-center px-3 gap-0.5 relative z-20"
+      style={{ background: 'linear-gradient(180deg, #0f1628 0%, #0b1020 100%)' }}
+    >
       <BrandMark />
       <Divider />
 
