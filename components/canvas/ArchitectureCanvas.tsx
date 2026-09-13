@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState, type DragEvent } from 'react';
+import { useCallback, useMemo, useRef, useState, type DragEvent } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -14,8 +14,7 @@ import { useCanvasStore } from '@/store/useCanvasStore';
 import CustomNode from '@/components/nodes/CustomNode';
 import { NODE_CONFIG } from '@/components/nodes/nodeConfig';
 
-const nodeTypes = { custom: CustomNode };
-
+// Defined outside AND memoized inside to survive Fast Refresh without triggering RF warning
 const defaultEdgeOptions = {
   type: 'smoothstep',
   style: { stroke: '#6b7280', strokeWidth: 1.5 },
@@ -25,6 +24,9 @@ const defaultEdgeOptions = {
 export default function ArchitectureCanvas() {
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const dropRef = useRef<HTMLDivElement>(null);
+  const didFitView = useRef(false);
+  // useMemo prevents a new object reference on every Fast Refresh / hot reload
+  const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
 
   const {
     nodes,
@@ -44,11 +46,10 @@ export default function ArchitectureCanvas() {
       const type = event.dataTransfer.getData('application/reactflow') as NodeType;
       if (!type || !rfInstance) return;
 
-      // project() converts screen coords → flow coords in reactflow v11
-      const position = rfInstance.project({
-        x: event.clientX - (dropRef.current?.getBoundingClientRect().left ?? 0),
-        y: event.clientY - (dropRef.current?.getBoundingClientRect().top ?? 0),
-      });
+      // screenToFlowPosition takes raw clientX/Y — no manual bounds subtraction needed
+      const position = (rfInstance as ReactFlowInstance & {
+        screenToFlowPosition: (pos: { x: number; y: number }) => { x: number; y: number };
+      }).screenToFlowPosition({ x: event.clientX, y: event.clientY });
 
       addNode(type, position);
     },
@@ -65,7 +66,8 @@ export default function ArchitectureCanvas() {
   return (
     <div
       ref={dropRef}
-      className="flex-1 h-full relative"
+      className="relative"
+      style={{ flex: '1 1 0', minHeight: 0, minWidth: 0 }}
       id="architecture-canvas"
     >
       <ReactFlow
@@ -74,19 +76,26 @@ export default function ArchitectureCanvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onInit={setRfInstance}
+        onInit={(instance) => {
+          setRfInstance(instance);
+          // Fit once on first load if nodes already exist (e.g. loaded project)
+          if (!didFitView.current) {
+            didFitView.current = true;
+            setTimeout(() => instance.fitView({ padding: 0.25 }), 50);
+          }
+        }}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onPaneClick={() => setSelectedNode(null)}
         onNodeDragStart={() => snapshot()}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
         snapToGrid
         snapGrid={[16, 16]}
         deleteKeyCode="Delete"
         style={{
+          width: '100%',
+          height: '100%',
           background: isDark ? '#030712' : '#f9fafb',
         }}
       >
