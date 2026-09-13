@@ -1,4 +1,5 @@
 import type { Node, Edge } from 'reactflow';
+import type { LucideIcon } from 'lucide-react';
 
 export type NodeType =
   | 'user'
@@ -41,9 +42,11 @@ export interface ValidationIssue {
 
 export interface NodeTypeConfig {
   label: string;
-  icon: string;
+  Icon: LucideIcon;
   accent: string;
   category: 'infrastructure' | 'services' | 'data';
   defaultTechnology: string;
   defaultName: string;
+  description: string;
+  allowedTargets: NodeType[];
 }

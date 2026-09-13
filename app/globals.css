@@ -61,36 +61,51 @@
   box-shadow: 0 0 0 2px rgba(99,102,241,0.25), 0 0 8px rgba(99,102,241,0.3);
 }
 
-/* Controls — dark */
-.dark .react-flow__controls {
-  background: #111827;
-  border-color: #1f2937;
+/* Controls */
+.react-flow__controls {
+  background: #fff;
+  border-color: #e2e8f0;
   border-radius: 10px;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.react-flow__controls button {
+  background-color: #fff;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  fill: #94a3b8;
+}
+.react-flow__controls button:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  fill: #1e293b;
+}
+
+.dark .react-flow__controls {
+  background: #0f172a;
+  border-color: #1e293b;
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
 }
-
 .dark .react-flow__controls button {
-  background-color: #111827;
-  border-color: #1f2937;
-  color: #6b7280;
-  fill: #6b7280;
+  background-color: #0f172a;
+  border-color: #1e293b;
+  color: #64748b;
+  fill: #64748b;
 }
-
 .dark .react-flow__controls button:hover {
-  background-color: #1f2937;
-  color: #e5e7eb;
-  fill: #e5e7eb;
+  background-color: #1e293b;
+  color: #e2e8f0;
+  fill: #e2e8f0;
 }
+.react-flow__controls button svg { fill: inherit; }
 
-.dark .react-flow__controls button svg {
-  fill: inherit;
-}
-
-/* MiniMap — dark */
-.dark .react-flow__minimap {
+/* MiniMap */
+.react-flow__minimap {
   border-radius: 10px;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.dark .react-flow__minimap {
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
 }
 
@@ -116,12 +131,14 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2d3748;
+  background: #cbd5e1;
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4a5568;
+  background: #94a3b8;
 }
+.dark ::-webkit-scrollbar-thumb { background: #334155; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
 /* ─── Focus ring base ──────────────────────────────────────────────────────── */
 input:focus, textarea:focus {
