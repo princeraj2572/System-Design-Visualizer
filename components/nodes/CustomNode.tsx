@@ -18,64 +18,86 @@ function CustomNode({ id, data, selected }: NodeProps<NodeData>) {
   return (
     <div
       onClick={handleClick}
-      className="relative flex flex-col items-center justify-center w-32 h-24 rounded-xl cursor-pointer transition-all duration-150 bg-white dark:bg-gray-800 shadow-md hover:shadow-xl"
+      className="relative flex flex-col w-36 rounded-xl cursor-pointer select-none overflow-hidden"
       style={{
-        border: `2px solid ${selected ? config.accent : `${config.accent}55`}`,
-        transform: selected ? 'scale(1.04)' : 'scale(1)',
+        background: 'linear-gradient(160deg, #1e2433 0%, #151a27 100%)',
+        border: `1.5px solid ${selected ? config.accent : 'rgba(55,65,81,0.8)'}`,
+        boxShadow: selected
+          ? `0 0 0 3px ${config.accent}28, 0 8px 32px rgba(0,0,0,0.5)`
+          : '0 2px 12px rgba(0,0,0,0.4)',
+        transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
       }}
     >
-      {/* Accent top bar */}
+      {/* Accent strip */}
       <div
-        className="absolute top-0 left-0 right-0 h-1 rounded-t-xl"
-        style={{ backgroundColor: config.accent }}
+        className="h-[3px] w-full flex-shrink-0"
+        style={{ background: `linear-gradient(90deg, ${config.accent} 0%, ${config.accent}88 100%)` }}
       />
 
-      {/* Icon */}
-      <span className="text-2xl mb-1 select-none" role="img" aria-label={config.label}>
-        {config.icon}
-      </span>
-
-      {/* Name */}
-      <span className="text-[11px] font-semibold text-center px-2 leading-tight text-gray-800 dark:text-gray-100 max-w-full truncate">
-        {data.name || config.defaultName}
-      </span>
-
-      {/* Technology badge */}
-      {data.technology && (
-        <span
-          className="text-[9px] mt-1 px-1.5 py-0.5 rounded-full font-medium max-w-[90%] truncate"
+      {/* Content */}
+      <div className="flex flex-col items-center px-3 pt-3 pb-3 gap-2">
+        {/* Icon box */}
+        <div
+          className="w-10 h-10 rounded-lg flex items-center justify-center text-xl flex-shrink-0"
           style={{
-            backgroundColor: `${config.accent}22`,
-            color: config.accent,
+            background: `${config.accent}18`,
+            boxShadow: `inset 0 1px 0 ${config.accent}20`,
           }}
         >
-          {data.technology}
+          <span role="img" aria-label={config.label} className="leading-none">
+            {config.icon}
+          </span>
+        </div>
+
+        {/* Name */}
+        <span
+          className="text-[11px] font-semibold text-center leading-tight max-w-full truncate px-0.5"
+          style={{ color: selected ? '#f1f5f9' : '#cbd5e1' }}
+        >
+          {data.name || config.defaultName}
         </span>
-      )}
+
+        {/* Technology badge */}
+        {data.technology && (
+          <span
+            className="text-[9px] font-medium px-2 py-0.5 rounded-full max-w-[90%] truncate"
+            style={{
+              background: `${config.accent}1a`,
+              color: config.accent,
+              border: `1px solid ${config.accent}30`,
+            }}
+          >
+            {data.technology}
+          </span>
+        )}
+      </div>
 
       {/* Handles — all four sides */}
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-2.5 !h-2.5 !bg-gray-500 dark:!bg-gray-400 !border-2 !border-white dark:!border-gray-800 !-top-[5px] opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ opacity: selected ? 1 : undefined }}
+        className="!w-2 !h-2 !border !top-[-4px]"
+        style={{ background: config.accent, borderColor: '#0f1219', opacity: selected ? 1 : undefined }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!w-2.5 !h-2.5 !bg-gray-500 dark:!bg-gray-400 !border-2 !border-white dark:!border-gray-800 !-bottom-[5px]"
+        className="!w-2 !h-2 !border !bottom-[-4px]"
+        style={{ background: config.accent, borderColor: '#0f1219' }}
       />
       <Handle
         type="target"
         position={Position.Left}
         id="left"
-        className="!w-2.5 !h-2.5 !bg-gray-500 dark:!bg-gray-400 !border-2 !border-white dark:!border-gray-800 !-left-[5px]"
+        className="!w-2 !h-2 !border !left-[-4px]"
+        style={{ background: config.accent, borderColor: '#0f1219' }}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="right"
-        className="!w-2.5 !h-2.5 !bg-gray-500 dark:!bg-gray-400 !border-2 !border-white dark:!border-gray-800 !-right-[5px]"
+        className="!w-2 !h-2 !border !right-[-4px]"
+        style={{ background: config.accent, borderColor: '#0f1219' }}
       />
     </div>
   );
