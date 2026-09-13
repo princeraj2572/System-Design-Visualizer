@@ -95,14 +95,29 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
   onConnect: (connection) => {
     get().snapshot();
+    const { nodes } = get();
+    const sourceNode = nodes.find((n) => n.id === connection.source);
+    const targetNode = nodes.find((n) => n.id === connection.target);
+
+    let isValid = true;
+    if (sourceNode && targetNode) {
+      const { allowedTargets } = NODE_CONFIG[sourceNode.data.nodeType];
+      isValid = allowedTargets.length === 0 || allowedTargets.includes(targetNode.data.nodeType);
+    }
+
     set((state) => ({
       edges: rfAddEdge(
         {
           ...connection,
           id: uuidv4(),
-          animated: false,
+          animated: isValid,
           type: 'smoothstep',
-          style: { stroke: '#6b7280', strokeWidth: 1.5 },
+          style: {
+            stroke: isValid ? '#6366f1' : '#ef4444',
+            strokeWidth: 1.5,
+            strokeDasharray: isValid ? undefined : '5 3',
+          },
+          data: { isValid },
         },
         state.edges
       ) as ArchEdge[],
@@ -261,8 +276,38 @@ function runValidation(nodes: ArchNode[], edges: ArchEdge[]): ValidationIssue[] 
     if (!connected.has(n.id)) {
       issues.push({
         severity: 'warning',
-        message: `"${n.data.name}" is not connected to any other component.`,
+        message: `"${n.data.name}" is not connected to anything.`,
         nodeId: n.id,
+      });
+    }
+  });
+
+  // Architecture connection rules
+  edges.forEach((e) => {
+    const src = nodes.find((n) => n.id === e.source);
+    const tgt = nodes.find((n) => n.id === e.target);
+    if (!src || !tgt) return;
+    const { allowedTargets, label: srcLabel } = NODE_CONFIG[src.data.nodeType];
+    const { label: tgtLabel } = NODE_CONFIG[tgt.data.nodeType];
+    if (allowedTargets.length > 0 && !allowedTargets.includes(tgt.data.nodeType)) {
+      issues.push({
+        severity: 'warning',
+        message: `Unusual connection: ${srcLabel} → ${tgtLabel}. ${srcLabel} doesn't typically talk directly to ${tgtLabel}.`,
+        nodeId: src.id,
+      });
+    }
+  });
+
+  // Client directly hitting internal services
+  edges.forEach((e) => {
+    const src = nodes.find((n) => n.id === e.source);
+    const tgt = nodes.find((n) => n.id === e.target);
+    if (!src || !tgt) return;
+    if (src.data.nodeType === 'user' && ['database', 'cache', 'messageQueue', 'storage', 'microservice', 'worker'].includes(tgt.data.nodeType)) {
+      issues.push({
+        severity: 'error',
+        message: `Client "${src.data.name}" connects directly to "${tgt.data.name}" — internal services should not be exposed to users.`,
+        nodeId: src.id,
       });
     }
   });
@@ -271,30 +316,40 @@ function runValidation(nodes: ArchNode[], edges: ArchEdge[]): ValidationIssue[] 
   const adj = new Map<string, string[]>();
   nodes.forEach((n) => adj.set(n.id, []));
   edges.forEach((e) => adj.get(e.source)?.push(e.target));
-
   const visited = new Set<string>();
   const stack = new Set<string>();
   let hasCycle = false;
-
   function dfs(id: string) {
-    visited.add(id);
-    stack.add(id);
-    for (const neighbor of adj.get(id) ?? []) {
-      if (!visited.has(neighbor)) dfs(neighbor);
-      else if (stack.has(neighbor)) { hasCycle = true; return; }
+    visited.add(id); stack.add(id);
+    for (const nb of adj.get(id) ?? []) {
+      if (!visited.has(nb)) dfs(nb);
+      else if (stack.has(nb)) { hasCycle = true; return; }
     }
     stack.delete(id);
   }
-
   nodes.forEach((n) => { if (!visited.has(n.id)) dfs(n.id); });
   if (hasCycle) {
-    issues.push({ severity: 'warning', message: 'Circular dependency detected in the architecture.' });
+    issues.push({ severity: 'warning', message: 'Circular dependency detected — check for feedback loops.' });
   }
 
   // No entry point
   const hasUser = nodes.some((n) => n.data.nodeType === 'user');
   if (!hasUser && nodes.length > 2) {
-    issues.push({ severity: 'warning', message: 'No User / Client entry point defined.' });
+    issues.push({ severity: 'warning', message: 'No User / Client entry point. Add one to define the traffic source.' });
+  }
+
+  // Database without cache
+  const hasDb = nodes.some((n) => n.data.nodeType === 'database');
+  const hasCache = nodes.some((n) => n.data.nodeType === 'cache');
+  if (hasDb && !hasCache && nodes.length > 3) {
+    issues.push({ severity: 'warning', message: 'Consider adding a Cache layer in front of your Database to reduce read latency.' });
+  }
+
+  // Message queue without worker
+  const hasMQ = nodes.some((n) => n.data.nodeType === 'messageQueue');
+  const hasWorker = nodes.some((n) => n.data.nodeType === 'worker');
+  if (hasMQ && !hasWorker) {
+    issues.push({ severity: 'warning', message: 'Message Queue has no Worker consuming it — queued messages will not be processed.' });
   }
 
   return issues;
