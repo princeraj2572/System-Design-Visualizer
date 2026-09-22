@@ -29,6 +29,31 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
   }
 }
 
+export function exportToMermaid(project: Project): void {
+  const idMap = new Map<string, string>();
+  project.nodes.forEach((n, i) => idMap.set(n.id, `n${i}`));
+
+  const lines = ['flowchart LR'];
+  project.nodes.forEach((n) => {
+    const label = (n.data.name || n.data.nodeType).replace(/"/g, "'");
+    const tech = n.data.technology ? ` (${n.data.technology.replace(/"/g, "'")})` : '';
+    lines.push(`  ${idMap.get(n.id)}["${label}${tech}"]`);
+  });
+  project.edges.forEach((e) => {
+    const from = idMap.get(e.source);
+    const to = idMap.get(e.target);
+    if (from && to) lines.push(`  ${from} --> ${to}`);
+  });
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${slugify(project.name)}.mmd`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function importFromJSON(file: File): Promise<Project> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

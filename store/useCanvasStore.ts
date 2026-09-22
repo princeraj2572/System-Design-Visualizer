@@ -36,6 +36,9 @@ interface CanvasStore {
   projectName: string;
   validationIssues: ValidationIssue[];
   showValidation: boolean;
+  clipboard: ArchNode | null;
+  recentTypes: NodeType[];
+  savedSnapshot: string;
 
   // React Flow handlers
   onNodesChange: (changes: NodeChange[]) => void;
@@ -46,6 +49,11 @@ interface CanvasStore {
   addNode: (type: NodeType, position: { x: number; y: number }) => void;
   updateNodeData: (id: string, data: Partial<NodeData>) => void;
   deleteNode: (id: string) => void;
+  duplicateNode: (id: string) => void;
+  nudgeNode: (id: string, dx: number, dy: number) => void;
+  copyNode: (id: string) => void;
+  pasteNode: () => void;
+  autoLayout: () => void;
   setSelectedNode: (id: string | null) => void;
 
   // History
@@ -62,10 +70,15 @@ interface CanvasStore {
   loadProject: (project: Project) => void;
   clearCanvas: () => void;
   getProject: () => Project;
+  markSaved: () => void;
 
   // Validation
   validate: () => void;
   dismissValidation: () => void;
+}
+
+function snapshotKey(nodes: ArchNode[], edges: ArchEdge[]): string {
+  return JSON.stringify({ nodes, edges });
 }
 
 function deepClone<T>(val: T): T {
@@ -82,6 +95,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   projectName: 'Untitled Architecture',
   validationIssues: [],
   showValidation: false,
+  clipboard: null,
+  recentTypes: [],
+  savedSnapshot: snapshotKey([], []),
 
   onNodesChange: (changes) => {
     set((state) => ({
@@ -143,7 +159,10 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         config: '',
       },
     };
-    set((state) => ({ nodes: [...state.nodes, newNode] }));
+    set((state) => ({
+      nodes: [...state.nodes, newNode],
+      recentTypes: [type, ...state.recentTypes.filter((t) => t !== type)].slice(0, 5),
+    }));
   },
 
   updateNodeData: (id, data) => {
@@ -160,6 +179,103 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       nodes: state.nodes.filter((n) => n.id !== id),
       edges: state.edges.filter((e) => e.source !== id && e.target !== id),
       selectedNodeId: state.selectedNodeId === id ? null : state.selectedNodeId,
+    }));
+  },
+
+  duplicateNode: (id) => {
+    const { nodes } = get();
+    const source = nodes.find((n) => n.id === id);
+    if (!source) return;
+    get().snapshot();
+    const clone: ArchNode = {
+      ...source,
+      id: uuidv4(),
+      position: { x: source.position.x + 32, y: source.position.y + 32 },
+      selected: false,
+      data: { ...source.data },
+    };
+    set((state) => ({ nodes: [...state.nodes, clone], selectedNodeId: clone.id }));
+  },
+
+  nudgeNode: (id, dx, dy) => {
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === id ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } } : n
+      ),
+    }));
+  },
+
+  copyNode: (id) => {
+    const node = get().nodes.find((n) => n.id === id);
+    if (node) set({ clipboard: { ...node, data: { ...node.data } } });
+  },
+
+  pasteNode: () => {
+    const { clipboard } = get();
+    if (!clipboard) return;
+    get().snapshot();
+    const clone: ArchNode = {
+      ...clipboard,
+      id: uuidv4(),
+      position: { x: clipboard.position.x + 48, y: clipboard.position.y + 48 },
+      selected: false,
+      data: { ...clipboard.data },
+    };
+    set((state) => ({ nodes: [...state.nodes, clone], selectedNodeId: clone.id }));
+  },
+
+  autoLayout: () => {
+    const { nodes, edges } = get();
+    if (nodes.length === 0) return;
+    get().snapshot();
+
+    const incoming = new Map<string, number>();
+    const adj = new Map<string, string[]>();
+    nodes.forEach((n) => { incoming.set(n.id, 0); adj.set(n.id, []); });
+    edges.forEach((e) => {
+      if (!adj.has(e.source) || !incoming.has(e.target)) return;
+      adj.get(e.source)!.push(e.target);
+      incoming.set(e.target, (incoming.get(e.target) ?? 0) + 1);
+    });
+
+    // Longest-path layering (BFS from roots); nodes in cycles fall back to layer 0.
+    const layer = new Map<string, number>();
+    const queue = nodes.filter((n) => (incoming.get(n.id) ?? 0) === 0).map((n) => n.id);
+    queue.forEach((id) => layer.set(id, 0));
+    let cursor = 0;
+    while (cursor < queue.length) {
+      const id = queue[cursor++];
+      const depth = layer.get(id) ?? 0;
+      for (const next of adj.get(id) ?? []) {
+        if ((layer.get(next) ?? -1) < depth + 1) {
+          layer.set(next, depth + 1);
+          queue.push(next);
+        }
+      }
+    }
+    nodes.forEach((n) => { if (!layer.has(n.id)) layer.set(n.id, 0); });
+
+    const spacingX = 260;
+    const spacingY = 150;
+    const columns = new Map<number, string[]>();
+    nodes.forEach((n) => {
+      const l = layer.get(n.id) ?? 0;
+      if (!columns.has(l)) columns.set(l, []);
+      columns.get(l)!.push(n.id);
+    });
+
+    const positions = new Map<string, { x: number; y: number }>();
+    Array.from(columns.entries())
+      .sort(([a], [b]) => a - b)
+      .forEach(([col, ids]) => {
+        const totalHeight = ids.length * spacingY;
+        ids.forEach((id, i) => {
+          positions.set(id, { x: col * spacingX, y: i * spacingY - totalHeight / 2 });
+        });
+      });
+
+    set((state) => ({
+      nodes: state.nodes.map((n) => ({ ...n, position: positions.get(n.id) ?? n.position })),
     }));
   },
 
@@ -238,7 +354,13 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       future: [],
       validationIssues: [],
       showValidation: false,
+      savedSnapshot: snapshotKey(project.nodes, project.edges),
     });
+  },
+
+  markSaved: () => {
+    const { nodes, edges } = get();
+    set({ savedSnapshot: snapshotKey(nodes, edges) });
   },
 
   clearCanvas: () => {
