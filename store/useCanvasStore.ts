@@ -54,6 +54,7 @@ interface CanvasStore {
 
   // Theme
   toggleTheme: () => void;
+  setTheme: (theme: 'light' | 'dark') => void;
 
   // Project
   setProjectName: (name: string) => void;
@@ -208,7 +209,16 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   toggleTheme: () => {
-    set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' }));
+    set((state) => {
+      const theme = state.theme === 'light' ? 'dark' : 'light';
+      try { localStorage.setItem('theme', theme); } catch {}
+      return { theme };
+    });
+  },
+
+  setTheme: (theme) => {
+    try { localStorage.setItem('theme', theme); } catch {}
+    set({ theme });
   },
 
   setProjectName: (name) => {
