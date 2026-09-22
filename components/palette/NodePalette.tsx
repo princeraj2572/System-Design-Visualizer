@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, type DragEvent } from 'react';
-import { Search } from 'lucide-react';
+import { useRef, useState, type DragEvent } from 'react';
+import { Search, ChevronDown, Clock } from 'lucide-react';
 import type { NodeType } from '@/types';
 import { NODE_CONFIG, NODE_CATEGORIES } from '@/components/nodes/nodeConfig';
+import { useCanvasStore } from '@/store/useCanvasStore';
 
 interface NodePaletteProps {
   onDragStart: (event: DragEvent, nodeType: NodeType) => void;
@@ -11,6 +12,18 @@ interface NodePaletteProps {
 
 export default function NodePalette({ onDragStart }: NodePaletteProps) {
   const [query, setQuery] = useState('');
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const addNode = useCanvasStore((s) => s.addNode);
+  const recentTypes = useCanvasStore((s) => s.recentTypes);
+  // Click-to-add cascades new nodes diagonally so they don't stack exactly on top of each other.
+  const clickAddCount = useRef(0);
+
+  const handleAdd = (type: NodeType) => {
+    const step = (clickAddCount.current++ % 8) * 28;
+    addNode(type, { x: 280 + step, y: 160 + step });
+  };
+
+  const toggleCategory = (id: string) => setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const filtered = query.trim()
     ? (Object.entries(NODE_CONFIG) as [NodeType, typeof NODE_CONFIG[NodeType]][])
@@ -52,39 +65,71 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
             <p className="text-[10px] text-slate-400 dark:text-zinc-600 text-center py-4">No results</p>
           ) : (
             <div className="space-y-0.5">
-              {filtered.map((type) => <PaletteItem key={type} type={type} onDragStart={onDragStart}/>)}
+              {filtered.map((type) => <PaletteItem key={type} type={type} onDragStart={onDragStart} onClick={handleAdd}/>)}
             </div>
           )
         ) : (
-          NODE_CATEGORIES.map((category) => (
-            <div key={category.id}>
-              <div className="flex items-center gap-2 px-1 mb-1">
-                <p className="text-[9px] font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-widest whitespace-nowrap">
-                  {category.label}
-                </p>
-                <div className="flex-1 h-px bg-slate-100 dark:bg-zinc-800"/>
+          <>
+            {recentTypes.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 px-1 mb-1">
+                  <Clock size={10} className="text-slate-400 dark:text-zinc-600"/>
+                  <p className="text-[9px] font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-widest whitespace-nowrap">
+                    Recent
+                  </p>
+                  <div className="flex-1 h-px bg-slate-100 dark:bg-zinc-800"/>
+                </div>
+                <div className="space-y-0.5">
+                  {recentTypes.map((type) => <PaletteItem key={`recent-${type}`} type={type} onDragStart={onDragStart} onClick={handleAdd}/>)}
+                </div>
               </div>
-              <div className="space-y-0.5">
-                {category.types.map((type) => (
-                  <PaletteItem key={type} type={type} onDragStart={onDragStart}/>
-                ))}
-              </div>
-            </div>
-          ))
+            )}
+
+            {NODE_CATEGORIES.map((category) => {
+              const isCollapsed = collapsed[category.id];
+              return (
+                <div key={category.id}>
+                  <button
+                    onClick={() => toggleCategory(category.id)}
+                    className="w-full flex items-center gap-2 px-1 mb-1 group"
+                  >
+                    <p className="text-[9px] font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-widest whitespace-nowrap
+                      group-hover:text-slate-600 dark:group-hover:text-zinc-400 transition-colors">
+                      {category.label}
+                    </p>
+                    <div className="flex-1 h-px bg-slate-100 dark:bg-zinc-800"/>
+                    <ChevronDown size={11}
+                      className={`text-slate-400 dark:text-zinc-600 transition-transform ${isCollapsed ? '-rotate-90' : ''}`}/>
+                  </button>
+                  {!isCollapsed && (
+                    <div className="space-y-0.5">
+                      {category.types.map((type) => (
+                        <PaletteItem key={type} type={type} onDragStart={onDragStart} onClick={handleAdd}/>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </>
         )}
       </div>
 
       {/* Footer hint */}
       <div className="px-3 py-2 border-t border-slate-100 dark:border-zinc-800">
         <p className="text-[9px] text-slate-400 dark:text-zinc-600 text-center">
-          Drag to canvas · connect handles
+          Drag or click to add · connect handles
         </p>
       </div>
     </aside>
   );
 }
 
-function PaletteItem({ type, onDragStart }: { type: NodeType; onDragStart: (e: DragEvent, t: NodeType) => void }) {
+function PaletteItem({ type, onDragStart, onClick }: {
+  type: NodeType;
+  onDragStart: (e: DragEvent, t: NodeType) => void;
+  onClick: (t: NodeType) => void;
+}) {
   const config = NODE_CONFIG[type];
   const { Icon } = config;
 
@@ -92,6 +137,7 @@ function PaletteItem({ type, onDragStart }: { type: NodeType; onDragStart: (e: D
     <div
       draggable
       onDragStart={(e) => onDragStart(e, type)}
+      onClick={() => onClick(type)}
       title={config.description}
       className="group flex items-center gap-2.5 px-2 py-1.5 rounded-lg select-none cursor-grab
         active:cursor-grabbing transition-colors duration-100
