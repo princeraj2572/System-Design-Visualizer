@@ -16,15 +16,29 @@ import {
   Zap,
   Radio,
   HardDrive,
+  Search,
+  BellRing,
+  Activity,
+  BarChart3,
 } from 'lucide-react';
-import type { NodeType, NodeTypeConfig } from '@/types';
+import type { NodeCategoryGroup, NodeProvider, NodeType, NodeTypeConfig } from '@/types';
+import { AWS_NODE_CONFIG, AWS_CATEGORIES } from './providers/aws';
+import { AZURE_NODE_CONFIG, AZURE_CATEGORIES } from './providers/azure';
+import { GCP_NODE_CONFIG, GCP_CATEGORIES } from './providers/gcp';
 
-export const NODE_CONFIG: Record<NodeType, NodeTypeConfig> = {
+const GENERIC_NODE_CONFIG: Record<
+  | 'user' | 'cdn' | 'dns' | 'waf' | 'loadBalancer' | 'apiGateway'
+  | 'apiServer' | 'microservice' | 'worker' | 'authService' | 'cronJob'
+  | 'serverlessFunction' | 'thirdPartyApi' | 'searchEngine' | 'notificationService' | 'monitoring'
+  | 'database' | 'nosqlDatabase' | 'cache' | 'messageQueue' | 'storage' | 'dataWarehouse',
+  NodeTypeConfig
+> = {
   user: {
     label: 'User / Client',
     Icon: Users,
     accent: '#3b82f6',
     category: 'infrastructure',
+    provider: 'generic',
     defaultTechnology: 'Browser / Mobile',
     defaultName: 'Client',
     description: 'End-user or client application. Entry point of the system.',
@@ -35,6 +49,7 @@ export const NODE_CONFIG: Record<NodeType, NodeTypeConfig> = {
     Icon: Globe,
     accent: '#8b5cf6',
     category: 'infrastructure',
+    provider: 'generic',
     defaultTechnology: 'CloudFront / Cloudflare',
     defaultName: 'CDN',
     description: 'Content Delivery Network. Caches and serves static assets close to the user.',
@@ -45,6 +60,7 @@ export const NODE_CONFIG: Record<NodeType, NodeTypeConfig> = {
     Icon: Compass,
     accent: '#06b6d4',
     category: 'infrastructure',
+    provider: 'generic',
     defaultTechnology: 'Route53 / Cloudflare DNS',
     defaultName: 'DNS',
     description: 'Resolves domain names to IP addresses. Often the first hop for a request.',
@@ -55,6 +71,7 @@ export const NODE_CONFIG: Record<NodeType, NodeTypeConfig> = {
     Icon: ShieldAlert,
     accent: '#dc2626',
     category: 'infrastructure',
+    provider: 'generic',
     defaultTechnology: 'AWS WAF / Cloudflare WAF',
     defaultName: 'WAF',
     description: 'Filters malicious traffic before it reaches your infrastructure.',
@@ -65,6 +82,7 @@ export const NODE_CONFIG: Record<NodeType, NodeTypeConfig> = {
     Icon: Scale,
     accent: '#f97316',
     category: 'infrastructure',
+    provider: 'generic',
     defaultTechnology: 'Nginx / HAProxy',
     defaultName: 'Load Balancer',
     description: 'Distributes incoming traffic across multiple servers for availability.',
@@ -75,6 +93,7 @@ export const NODE_CONFIG: Record<NodeType, NodeTypeConfig> = {
     Icon: ShieldCheck,
     accent: '#14b8a6',
     category: 'infrastructure',
+    provider: 'generic',
     defaultTechnology: 'Kong / AWS API Gateway',
     defaultName: 'API Gateway',
     description: 'Single entry point for APIs. Handles auth, rate limiting, routing.',
@@ -85,26 +104,29 @@ export const NODE_CONFIG: Record<NodeType, NodeTypeConfig> = {
     Icon: Server,
     accent: '#22c55e',
     category: 'services',
+    provider: 'generic',
     defaultTechnology: 'Node.js / Go',
     defaultName: 'API Server',
     description: 'Handles business logic, processes requests, returns responses.',
-    allowedTargets: ['microservice', 'database', 'cache', 'messageQueue', 'storage', 'authService', 'thirdPartyApi'],
+    allowedTargets: ['microservice', 'database', 'nosqlDatabase', 'cache', 'messageQueue', 'storage', 'authService', 'searchEngine', 'notificationService', 'monitoring', 'thirdPartyApi'],
   },
   microservice: {
     label: 'Microservice',
     Icon: Package,
     accent: '#10b981',
     category: 'services',
+    provider: 'generic',
     defaultTechnology: 'Docker / Kubernetes',
     defaultName: 'Service',
     description: 'Independently deployable service owning a bounded domain context.',
-    allowedTargets: ['microservice', 'database', 'cache', 'messageQueue', 'storage', 'authService', 'thirdPartyApi'],
+    allowedTargets: ['microservice', 'database', 'nosqlDatabase', 'cache', 'messageQueue', 'storage', 'authService', 'searchEngine', 'notificationService', 'monitoring', 'thirdPartyApi'],
   },
   worker: {
     label: 'Worker',
     Icon: Cpu,
     accent: '#eab308',
     category: 'services',
+    provider: 'generic',
     defaultTechnology: 'Celery / BullMQ',
     defaultName: 'Worker',
     description: 'Background job processor. Consumes tasks from a message queue.',
@@ -115,6 +137,7 @@ export const NODE_CONFIG: Record<NodeType, NodeTypeConfig> = {
     Icon: KeyRound,
     accent: '#a855f7',
     category: 'services',
+    provider: 'generic',
     defaultTechnology: 'OAuth / JWT / Auth0',
     defaultName: 'Auth Service',
     description: 'Handles authentication and authorization for incoming requests.',
@@ -125,16 +148,18 @@ export const NODE_CONFIG: Record<NodeType, NodeTypeConfig> = {
     Icon: Timer,
     accent: '#84cc16',
     category: 'services',
+    provider: 'generic',
     defaultTechnology: 'Cron / Scheduled Lambda',
     defaultName: 'Cron Job',
     description: 'Runs on a fixed schedule to perform periodic background tasks.',
-    allowedTargets: ['database', 'cache', 'messageQueue', 'storage', 'apiServer', 'microservice'],
+    allowedTargets: ['database', 'cache', 'messageQueue', 'storage', 'apiServer', 'microservice', 'notificationService'],
   },
   serverlessFunction: {
     label: 'Serverless Function',
     Icon: CloudLightning,
     accent: '#fb923c',
     category: 'services',
+    provider: 'generic',
     defaultTechnology: 'AWS Lambda / Cloud Functions',
     defaultName: 'Function',
     description: 'Stateless, event-triggered compute that scales automatically.',
@@ -145,26 +170,73 @@ export const NODE_CONFIG: Record<NodeType, NodeTypeConfig> = {
     Icon: Plug,
     accent: '#0ea5e9',
     category: 'services',
+    provider: 'generic',
     defaultTechnology: 'Stripe / Twilio / External API',
     defaultName: 'Third-Party API',
     description: 'External service integration outside your own infrastructure.',
     allowedTargets: [],
+  },
+  searchEngine: {
+    label: 'Search Engine',
+    Icon: Search,
+    accent: '#eab308',
+    category: 'data',
+    provider: 'generic',
+    defaultTechnology: 'Elasticsearch / OpenSearch',
+    defaultName: 'Search Engine',
+    description: 'Full-text search index for fast, relevance-ranked queries across large datasets.',
+    allowedTargets: [],
+  },
+  notificationService: {
+    label: 'Notification Service',
+    Icon: BellRing,
+    accent: '#f472b6',
+    category: 'services',
+    provider: 'generic',
+    defaultTechnology: 'SNS / Twilio / FCM',
+    defaultName: 'Notification Service',
+    description: 'Fans out messages to users via email, SMS, or push notifications.',
+    allowedTargets: ['thirdPartyApi'],
+  },
+  monitoring: {
+    label: 'Monitoring',
+    Icon: Activity,
+    accent: '#64748b',
+    category: 'infrastructure',
+    provider: 'generic',
+    defaultTechnology: 'Prometheus / Grafana / Datadog',
+    defaultName: 'Monitoring',
+    description: 'Collects metrics, logs, and traces to observe system health.',
+    allowedTargets: ['notificationService'],
   },
   database: {
     label: 'Database',
     Icon: Database,
     accent: '#6366f1',
     category: 'data',
+    provider: 'generic',
     defaultTechnology: 'PostgreSQL / MySQL',
     defaultName: 'Database',
     description: 'Persistent data store. Source of truth for structured data.',
     allowedTargets: ['cache', 'storage'],
+  },
+  nosqlDatabase: {
+    label: 'NoSQL Database',
+    Icon: Database,
+    accent: '#4f46e5',
+    category: 'data',
+    provider: 'generic',
+    defaultTechnology: 'DynamoDB / MongoDB / Cassandra',
+    defaultName: 'NoSQL Database',
+    description: 'Schema-flexible store optimized for horizontal scale rather than relational integrity.',
+    allowedTargets: ['cache'],
   },
   cache: {
     label: 'Cache',
     Icon: Zap,
     accent: '#ef4444',
     category: 'data',
+    provider: 'generic',
     defaultTechnology: 'Redis / Memcached',
     defaultName: 'Cache',
     description: 'In-memory store for fast reads. Reduces database load.',
@@ -175,41 +247,75 @@ export const NODE_CONFIG: Record<NodeType, NodeTypeConfig> = {
     Icon: Radio,
     accent: '#f59e0b',
     category: 'data',
+    provider: 'generic',
     defaultTechnology: 'RabbitMQ / Kafka',
     defaultName: 'Message Queue',
     description: 'Async message broker decoupling producers from consumers.',
-    allowedTargets: ['worker', 'microservice', 'apiServer', 'serverlessFunction'],
+    allowedTargets: ['worker', 'microservice', 'apiServer', 'serverlessFunction', 'notificationService'],
   },
   storage: {
     label: 'Object Storage',
     Icon: HardDrive,
     accent: '#6b7280',
     category: 'data',
+    provider: 'generic',
     defaultTechnology: 'S3 / GCS',
     defaultName: 'Storage',
     description: 'Blob/object store for files, images, backups, and logs.',
     allowedTargets: [],
   },
+  dataWarehouse: {
+    label: 'Data Warehouse',
+    Icon: BarChart3,
+    accent: '#0891b2',
+    category: 'data',
+    provider: 'generic',
+    defaultTechnology: 'Redshift / BigQuery / Snowflake',
+    defaultName: 'Data Warehouse',
+    description: 'Optimized for large-scale analytical (OLAP) queries rather than transactional workloads.',
+    allowedTargets: [],
+  },
 };
 
-export const NODE_CATEGORIES: {
-  id: 'infrastructure' | 'services' | 'data';
-  label: string;
-  types: NodeType[];
-}[] = [
+const GENERIC_CATEGORIES: NodeCategoryGroup[] = [
   {
     id: 'infrastructure',
     label: 'Infrastructure',
-    types: ['user', 'cdn', 'dns', 'waf', 'loadBalancer', 'apiGateway'],
+    types: ['user', 'cdn', 'dns', 'waf', 'loadBalancer', 'apiGateway', 'monitoring'],
   },
   {
     id: 'services',
     label: 'Services',
-    types: ['apiServer', 'microservice', 'worker', 'authService', 'cronJob', 'serverlessFunction', 'thirdPartyApi'],
+    types: ['apiServer', 'microservice', 'worker', 'authService', 'cronJob', 'serverlessFunction', 'notificationService', 'thirdPartyApi'],
   },
   {
     id: 'data',
     label: 'Data',
-    types: ['database', 'cache', 'messageQueue', 'storage'],
+    types: ['database', 'nosqlDatabase', 'cache', 'messageQueue', 'storage', 'searchEngine', 'dataWarehouse'],
   },
 ];
+
+export const NODE_CONFIG: Record<NodeType, NodeTypeConfig> = {
+  ...GENERIC_NODE_CONFIG,
+  ...AWS_NODE_CONFIG,
+  ...AZURE_NODE_CONFIG,
+  ...GCP_NODE_CONFIG,
+} as Record<NodeType, NodeTypeConfig>;
+
+/** Category groups keyed by provider, for the palette's provider tabs. */
+export const PROVIDER_CATEGORIES: Record<NodeProvider, NodeCategoryGroup[]> = {
+  generic: GENERIC_CATEGORIES,
+  aws: AWS_CATEGORIES,
+  azure: AZURE_CATEGORIES,
+  gcp: GCP_CATEGORIES,
+};
+
+export const PROVIDER_LABELS: Record<NodeProvider, string> = {
+  generic: 'Generic',
+  aws: 'AWS',
+  azure: 'Azure',
+  gcp: 'GCP',
+};
+
+/** Back-compat alias: the generic (vendor-neutral) category list. */
+export const NODE_CATEGORIES = GENERIC_CATEGORIES;
