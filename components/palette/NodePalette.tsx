@@ -78,6 +78,11 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
     addNode(type, { x: 280 + step, y: 160 + step });
   };
 
+  // Drives how much detail each PaletteItem shows — a narrow panel drops
+  // the technology subtitle, a wide one adds a description snippet, so the
+  // content actually uses (or gracefully sheds) space as the panel resizes.
+  const itemSize: PaletteItemSize = width < 210 ? 'compact' : width >= 300 ? 'wide' : 'normal';
+
   const categories = PROVIDER_CATEGORIES[provider];
   const recentInProvider = recentTypes.filter((t) => NODE_CONFIG[t].provider === provider);
 
@@ -148,7 +153,7 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
             <button
               key={p}
               onClick={() => setProvider(p)}
-              className={`flex-1 px-1.5 py-1 rounded-md text-[10px] font-semibold transition-colors ${
+              className={`flex-1 min-w-0 truncate px-1.5 py-1 rounded-md text-[10px] font-semibold transition-colors ${
                 provider === p
                   ? 'bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 shadow-sm'
                   : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300'
@@ -183,7 +188,7 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
             <p className="text-[10px] text-slate-400 dark:text-zinc-600 text-center py-4">No results</p>
           ) : (
             <div className="space-y-0.5">
-              {filtered.map((type) => <PaletteItem key={type} type={type} onDragStart={onDragStart} onClick={handleAdd}/>)}
+              {filtered.map((type) => <PaletteItem key={type} type={type} onDragStart={onDragStart} onClick={handleAdd} size={itemSize}/>)}
             </div>
           )
         ) : (
@@ -198,7 +203,7 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
                   <div className="flex-1 h-px bg-slate-100 dark:bg-zinc-800"/>
                 </div>
                 <div className="space-y-0.5">
-                  {recentInProvider.map((type) => <PaletteItem key={`recent-${type}`} type={type} onDragStart={onDragStart} onClick={handleAdd}/>)}
+                  {recentInProvider.map((type) => <PaletteItem key={`recent-${type}`} type={type} onDragStart={onDragStart} onClick={handleAdd} size={itemSize}/>)}
                 </div>
               </div>
             )}
@@ -222,7 +227,7 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
                   {!isCollapsed && (
                     <div className="space-y-0.5">
                       {category.types.map((type) => (
-                        <PaletteItem key={type} type={type} onDragStart={onDragStart} onClick={handleAdd}/>
+                        <PaletteItem key={type} type={type} onDragStart={onDragStart} onClick={handleAdd} size={itemSize}/>
                       ))}
                     </div>
                   )}
@@ -243,13 +248,18 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
   );
 }
 
-function PaletteItem({ type, onDragStart, onClick }: {
+type PaletteItemSize = 'compact' | 'normal' | 'wide';
+
+function PaletteItem({ type, onDragStart, onClick, size }: {
   type: NodeType;
   onDragStart: (e: DragEvent, t: NodeType) => void;
   onClick: (t: NodeType) => void;
+  size: PaletteItemSize;
 }) {
   const config = NODE_CONFIG[type];
   const { Icon } = config;
+  const iconBox = size === 'compact' ? 'w-5 h-5' : size === 'wide' ? 'w-7 h-7' : 'w-6 h-6';
+  const iconPx = size === 'compact' ? 11 : size === 'wide' ? 15 : 13;
 
   return (
     <div
@@ -267,9 +277,9 @@ function PaletteItem({ type, onDragStart, onClick }: {
         style={{ backgroundColor: config.accent }}/>
 
       {/* Icon */}
-      <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
+      <div className={`${iconBox} rounded-md flex items-center justify-center flex-shrink-0 transition-[width,height]`}
         style={{ backgroundColor: `${config.accent}15` }}>
-        <Icon size={13} style={{ color: config.accent }} strokeWidth={2}/>
+        <Icon size={iconPx} style={{ color: config.accent }} strokeWidth={2}/>
       </div>
 
       {/* Labels */}
@@ -278,9 +288,16 @@ function PaletteItem({ type, onDragStart, onClick }: {
           group-hover:text-slate-900 dark:group-hover:text-zinc-100 transition-colors">
           {config.label}
         </p>
-        <p className="text-[9px] truncate text-slate-400 dark:text-zinc-600 transition-colors">
-          {config.defaultTechnology}
-        </p>
+        {size !== 'compact' && (
+          <p className="text-[9px] truncate text-slate-400 dark:text-zinc-600 transition-colors">
+            {config.defaultTechnology}
+          </p>
+        )}
+        {size === 'wide' && (
+          <p className="text-[9px] truncate text-slate-400 dark:text-zinc-600/80 transition-colors">
+            {config.description}
+          </p>
+        )}
       </div>
     </div>
   );
