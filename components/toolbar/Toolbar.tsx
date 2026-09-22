@@ -1,10 +1,11 @@
 'use client';
 
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import {
   exportToJSON,
   exportToPNG,
+  exportToMermaid,
   importFromJSON,
   saveProjectToLocalStorage,
   loadProjectsFromLocalStorage,
@@ -32,6 +33,8 @@ const ImageIcon = () => <Icon><rect x="3" y="3" width="18" height="18" rx="2" ry
 const UploadIcon = () => <Icon><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></Icon>;
 const ValidateIcon = () => <Icon><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Icon>;
 const TrashIcon = () => <Icon><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></Icon>;
+const MermaidIcon = () => <Icon><path d="M3 12h4l3-9 4 18 3-9h4"/></Icon>;
+const LayoutIcon = () => <Icon><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="14" y="15" width="7" height="5" rx="1"/></Icon>;
 const SunIcon = () => <Icon><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></Icon>;
 const MoonIcon = () => <Icon><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></Icon>;
 
@@ -77,6 +80,8 @@ export default function Toolbar() {
     projectName, setProjectName, getProject, loadProject, clearCanvas,
     undo, redo, history, future, validate, dismissValidation,
     validationIssues, showValidation, theme, toggleTheme,
+    nodes, edges, savedSnapshot, markSaved,
+    selectedNodeId, duplicateNode, nudgeNode, copyNode, pasteNode, autoLayout,
   } = useCanvasStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -84,17 +89,63 @@ export default function Toolbar() {
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
+  const isDirty = JSON.stringify({ nodes, edges }) !== savedSnapshot;
+
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
 
-  const handleSave = useCallback(() => { const p = getProject(); saveProjectToLocalStorage(p); showToast(`"${p.name}" saved`); }, [getProject]);
+  const handleSave = useCallback(() => {
+    const p = getProject();
+    saveProjectToLocalStorage(p);
+    markSaved();
+    showToast(`"${p.name}" saved`);
+  }, [getProject, markSaved]);
   const handleExportJSON = useCallback(() => exportToJSON(getProject()), [getProject]);
   const handleExportPNG = useCallback(async () => { showToast('Exporting…'); await exportToPNG('architecture-canvas', projectName); }, [projectName]);
+  const handleExportMermaid = useCallback(() => { exportToMermaid(getProject()); showToast('Mermaid diagram exported'); }, [getProject]);
+  const handleAutoLayout = useCallback(() => { autoLayout(); showToast('Layout arranged'); }, [autoLayout]);
   const handleImport = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     try { const p = await importFromJSON(file); loadProject(p); showToast(`Imported "${p.name}"`); }
     catch { showToast('Import failed — invalid file'); }
     e.target.value = '';
   }, [loadProject]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isEditable = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      const mod = e.ctrlKey || e.metaKey;
+
+      if (mod && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleSave();
+        return;
+      }
+      if (isEditable) return;
+
+      if (mod && e.key.toLowerCase() === 'd') {
+        if (selectedNodeId) { e.preventDefault(); duplicateNode(selectedNodeId); }
+        return;
+      }
+      if (mod && e.key.toLowerCase() === 'c') {
+        if (selectedNodeId) copyNode(selectedNodeId);
+        return;
+      }
+      if (mod && e.key.toLowerCase() === 'v') {
+        pasteNode();
+        return;
+      }
+      if (selectedNodeId && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+        const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+        nudgeNode(selectedNodeId, dx, dy);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [selectedNodeId, duplicateNode, nudgeNode, copyNode, pasteNode, handleSave]);
 
   return (
     <header className="h-11 flex-shrink-0 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 flex items-center px-3 gap-0.5 relative z-20">
@@ -118,10 +169,14 @@ export default function Toolbar() {
 
       <Divider />
 
-      <Btn onClick={handleSave} title="Save to browser storage"><SaveIcon/> Save</Btn>
+      <Btn onClick={handleSave} title="Save to browser storage (Ctrl+S)">
+        <SaveIcon/> Save
+        {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" title="Unsaved changes"/>}
+      </Btn>
       <Btn onClick={() => setShowLoadDialog(true)} title="Load saved project"><FolderIcon/> Load</Btn>
       <Btn onClick={handleExportJSON} title="Download as JSON"><CodeIcon/> JSON</Btn>
       <Btn onClick={handleExportPNG} title="Download as PNG"><ImageIcon/> PNG</Btn>
+      <Btn onClick={handleExportMermaid} title="Download as Mermaid diagram"><MermaidIcon/> Mermaid</Btn>
       <label className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium
         text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100
         hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors">
@@ -131,6 +186,7 @@ export default function Toolbar() {
 
       <Divider />
 
+      <Btn onClick={handleAutoLayout} title="Auto-arrange nodes"><LayoutIcon/> Auto Layout</Btn>
       <Btn onClick={validate} title="Validate architecture"><ValidateIcon/> Validate</Btn>
       <Btn onClick={() => setShowClearConfirm(true)} title="Clear canvas" variant="danger"><TrashIcon/> Clear</Btn>
 

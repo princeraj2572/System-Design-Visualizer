@@ -32,6 +32,8 @@ function StatusBar() {
       <div className="flex items-center gap-3 text-[9px] font-medium text-slate-400 dark:text-zinc-600">
         <span><kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-500 dark:text-zinc-500 text-[8px]">Del</kbd> delete</span>
         <span><kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-500 dark:text-zinc-500 text-[8px]">Ctrl Z</kbd> undo</span>
+        <span><kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-500 dark:text-zinc-500 text-[8px]">Ctrl D</kbd> duplicate</span>
+        <span><kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-500 dark:text-zinc-500 text-[8px]">arrows</kbd> nudge</span>
         <span>drag handles to connect</span>
       </div>
     </div>
