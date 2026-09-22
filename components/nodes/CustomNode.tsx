@@ -58,7 +58,7 @@ function CustomNode({ id, data, selected }: NodeProps<NodeData>) {
       aria-pressed={selected}
       aria-label={`${data.name || config.defaultName} (${config.label})`}
       title={data.description || config.description}
-      className="relative flex flex-col w-40 rounded-xl cursor-pointer select-none overflow-hidden
+      className="relative flex flex-col w-40 rounded-xl cursor-pointer select-none
         bg-white dark:bg-zinc-800/90 border border-slate-200 dark:border-zinc-700/70
         shadow-sm hover:shadow-md dark:shadow-black/30
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
@@ -73,69 +73,77 @@ function CustomNode({ id, data, selected }: NodeProps<NodeData>) {
         transition: 'border-color 0.12s ease, box-shadow 0.12s ease',
       }}
     >
-      {/* Accent top strip */}
-      <div className="h-[3px] w-full flex-shrink-0" style={{ backgroundColor: config.accent }}/>
+      {/*
+        Clipping (rounded corners for the accent strip) lives on this inner
+        wrapper, NOT the outer node div — Handles below are positioned half
+        outside the node box, and overflow-hidden on their ancestor would
+        clip their hit-testable area along with their paint.
+      */}
+      <div className="flex flex-col overflow-hidden rounded-[11px]">
+        {/* Accent top strip */}
+        <div className="h-[3px] w-full flex-shrink-0" style={{ backgroundColor: config.accent }}/>
 
-      {/* Validation badge */}
-      {issue && (
-        <div
-          className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center z-10"
-          style={{ backgroundColor: issue.severity === 'error' ? '#ef4444' : '#f59e0b' }}
-          title={issue.message}
-        >
-          <AlertTriangle size={10} className="text-white" strokeWidth={2.5}/>
-        </div>
-      )}
-
-      {/* Content */}
-      <div className="flex flex-col items-center px-3 pt-3 pb-3 gap-2">
-        {/* Icon */}
-        <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: `${config.accent}18` }}
-        >
-          <Icon size={20} style={{ color: config.accent }} strokeWidth={1.75}/>
-        </div>
-
-        {/* Name */}
-        {isRenaming ? (
-          <input
-            ref={inputRef}
-            value={draftName}
-            onChange={(e) => setDraftName(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-            onBlur={commitRename}
-            onKeyDown={(e) => {
-              e.stopPropagation();
-              if (e.key === 'Enter') commitRename();
-              if (e.key === 'Escape') { setIsRenaming(false); setDraftName(data.name); }
-            }}
-            className="w-full text-[11px] font-semibold text-center leading-tight bg-transparent
-              text-slate-800 dark:text-zinc-100 border-b border-indigo-400 focus:outline-none"
-          />
-        ) : (
-          <span
-            onDoubleClick={startRename}
-            className="text-[11px] font-semibold text-center leading-tight w-full truncate px-1
-              text-slate-800 dark:text-zinc-100"
+        {/* Validation badge */}
+        {issue && (
+          <div
+            className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center z-10"
+            style={{ backgroundColor: issue.severity === 'error' ? '#ef4444' : '#f59e0b' }}
+            title={issue.message}
           >
-            {data.name || config.defaultName}
-          </span>
+            <AlertTriangle size={10} className="text-white" strokeWidth={2.5}/>
+          </div>
         )}
 
-        {/* Technology badge */}
-        {data.technology && (
-          <span
-            className="text-[9px] font-medium px-2 py-0.5 rounded-full max-w-[92%] truncate"
-            style={{
-              backgroundColor: `${config.accent}15`,
-              color: config.accent,
-              border: `1px solid ${config.accent}30`,
-            }}
+        {/* Content */}
+        <div className="flex flex-col items-center px-3 pt-3 pb-3 gap-2">
+          {/* Icon */}
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: `${config.accent}18` }}
           >
-            {data.technology}
-          </span>
-        )}
+            <Icon size={20} style={{ color: config.accent }} strokeWidth={1.75}/>
+          </div>
+
+          {/* Name */}
+          {isRenaming ? (
+            <input
+              ref={inputRef}
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              onBlur={commitRename}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === 'Enter') commitRename();
+                if (e.key === 'Escape') { setIsRenaming(false); setDraftName(data.name); }
+              }}
+              className="w-full text-[11px] font-semibold text-center leading-tight bg-transparent
+                text-slate-800 dark:text-zinc-100 border-b border-indigo-400 focus:outline-none"
+            />
+          ) : (
+            <span
+              onDoubleClick={startRename}
+              className="text-[11px] font-semibold text-center leading-tight w-full truncate px-1
+                text-slate-800 dark:text-zinc-100"
+            >
+              {data.name || config.defaultName}
+            </span>
+          )}
+
+          {/* Technology badge */}
+          {data.technology && (
+            <span
+              className="text-[9px] font-medium px-2 py-0.5 rounded-full max-w-[92%] truncate"
+              style={{
+                backgroundColor: `${config.accent}15`,
+                color: config.accent,
+                border: `1px solid ${config.accent}30`,
+              }}
+            >
+              {data.technology}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Handles */}
