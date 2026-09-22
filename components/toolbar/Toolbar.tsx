@@ -80,8 +80,9 @@ export default function Toolbar() {
     projectName, setProjectName, getProject, loadProject, clearCanvas,
     undo, redo, history, future, validate, dismissValidation,
     validationIssues, showValidation, theme, toggleTheme,
-    nodes, edges, savedSnapshot, markSaved,
+    nodes, edges, shapes, documentContent, savedSnapshot, markSaved,
     selectedNodeId, duplicateNode, nudgeNode, copyNode, pasteNode, autoLayout,
+    viewMode, setViewMode,
   } = useCanvasStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -89,7 +90,7 @@ export default function Toolbar() {
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  const isDirty = JSON.stringify({ nodes, edges }) !== savedSnapshot;
+  const isDirty = JSON.stringify({ nodes, edges, shapes, documentContent }) !== savedSnapshot;
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
 
@@ -161,6 +162,24 @@ export default function Toolbar() {
           focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none
           placeholder-slate-400 dark:placeholder-zinc-600 transition-colors"
       />
+
+      <Divider />
+
+      <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800">
+        {(['document', 'both', 'canvas'] as const).map((mode) => (
+          <button
+            key={mode}
+            onClick={() => setViewMode(mode)}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-semibold capitalize transition-colors ${
+              viewMode === mode
+                ? 'bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 shadow-sm'
+                : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300'
+            }`}
+          >
+            {mode}
+          </button>
+        ))}
+      </div>
 
       <Divider />
 
