@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState, type DragEvent, type MouseEvent as ReactMouseEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -9,15 +9,26 @@ import ReactFlow, {
   MarkerType,
   type ReactFlowInstance,
   type Node,
+  type NodeChange,
   type OnMove,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Copy, Trash2, ClipboardPaste, LayoutGrid } from 'lucide-react';
-import type { NodeType } from '@/types';
+import type { NodeType, ShapeNode as ShapeNodeType, ToolId } from '@/types';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import CustomNode from '@/components/nodes/CustomNode';
+import ShapeNode from '@/components/nodes/ShapeNode';
+import DrawToolbar from '@/components/canvas/DrawToolbar';
 import { NODE_CONFIG } from '@/components/nodes/nodeConfig';
 import { ContextMenu, type ContextMenuItem } from '@/components/common/ContextMenu';
+
+const MIN_DRAW_SIZE = 4;
+
+interface DrawState {
+  tool: ToolId;
+  start: { x: number; y: number };
+  points: { x: number; y: number }[];
+}
 
 // Defined outside AND memoized inside to survive Fast Refresh without triggering RF warning
 const defaultEdgeOptions = {
@@ -38,14 +49,18 @@ export default function ArchitectureCanvas() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [menu, setMenu] = useState<CanvasMenu | null>(null);
   const [zoomPct, setZoomPct] = useState(100);
+  const [drawPreview, setDrawPreview] = useState<DrawState | null>(null);
+  const drawStateRef = useRef<DrawState | null>(null);
   // useMemo prevents a new object reference on every Fast Refresh / hot reload
-  const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
+  const nodeTypes = useMemo(() => ({ custom: CustomNode, shape: ShapeNode }), []);
 
   const {
     nodes,
     edges,
+    shapes,
     onNodesChange,
     onEdgesChange,
+    onShapesChange,
     onConnect,
     addNode,
     setSelectedNode,
@@ -57,6 +72,12 @@ export default function ArchitectureCanvas() {
     duplicateNode,
     deleteNode,
     autoLayout,
+    activeTool,
+    setActiveTool,
+    selectedShapeId,
+    setSelectedShape,
+    addShape,
+    deleteShape,
   } = useCanvasStore();
 
   const onDrop = useCallback(
@@ -81,6 +102,134 @@ export default function ArchitectureCanvas() {
   }, []);
 
   const isDark = theme === 'dark';
+  const strokeColor = isDark ? '#a1a1aa' : '#334155';
+
+  const toFlowPoint = useCallback((clientX: number, clientY: number) => {
+    if (!rfInstance) return { x: 0, y: 0 };
+    return (rfInstance as ReactFlowInstance & {
+      screenToFlowPosition: (pos: { x: number; y: number }) => { x: number; y: number };
+    }).screenToFlowPosition({ x: clientX, y: clientY });
+  }, [rfInstance]);
+
+  const finishDrawing = useCallback(() => {
+    const state = drawStateRef.current;
+    drawStateRef.current = null;
+    setDrawPreview(null);
+    document.removeEventListener('mousemove', onDrawMouseMoveRef.current!);
+    document.removeEventListener('mouseup', onDrawMouseUpRef.current!);
+    if (!state) return;
+
+    const { tool, start, points } = state;
+    if (tool === 'pencil') {
+      if (points.length < 2) return;
+      const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
+      const minX = Math.min(...xs), minY = Math.min(...ys);
+      const w = Math.max(...xs) - minX, h = Math.max(...ys) - minY;
+      addShape({
+        kind: 'pencil', position: { x: minX, y: minY },
+        width: Math.max(w, MIN_DRAW_SIZE), height: Math.max(h, MIN_DRAW_SIZE),
+        stroke: strokeColor,
+        points: points.map((p) => ({ x: p.x - minX, y: p.y - minY })),
+      });
+    } else if (tool === 'line' || tool === 'arrow') {
+      const end = points[points.length - 1] ?? start;
+      const minX = Math.min(start.x, end.x), minY = Math.min(start.y, end.y);
+      const w = Math.abs(end.x - start.x), h = Math.abs(end.y - start.y);
+      if (w < MIN_DRAW_SIZE && h < MIN_DRAW_SIZE) return;
+      addShape({
+        kind: tool, position: { x: minX, y: minY },
+        width: Math.max(w, MIN_DRAW_SIZE), height: Math.max(h, MIN_DRAW_SIZE),
+        stroke: strokeColor,
+        points: [{ x: start.x - minX, y: start.y - minY }, { x: end.x - minX, y: end.y - minY }],
+      });
+    } else if (tool === 'rectangle' || tool === 'ellipse') {
+      const end = points[points.length - 1] ?? start;
+      const minX = Math.min(start.x, end.x), minY = Math.min(start.y, end.y);
+      const w = Math.abs(end.x - start.x), h = Math.abs(end.y - start.y);
+      if (w < MIN_DRAW_SIZE || h < MIN_DRAW_SIZE) return;
+      addShape({ kind: tool, position: { x: minX, y: minY }, width: w, height: h, stroke: strokeColor, fill: 'transparent' });
+    }
+    setActiveTool('select');
+  }, [addShape, setActiveTool, strokeColor]);
+
+  const onDrawMouseMoveRef = useRef<(e: MouseEvent) => void>();
+  const onDrawMouseUpRef = useRef<(e: MouseEvent) => void>();
+  onDrawMouseMoveRef.current = (e: MouseEvent) => {
+    if (!drawStateRef.current) return;
+    const p = toFlowPoint(e.clientX, e.clientY);
+    if (drawStateRef.current.tool === 'pencil') {
+      drawStateRef.current.points.push(p);
+    } else {
+      drawStateRef.current.points = [p];
+    }
+    setDrawPreview({ ...drawStateRef.current, points: [...drawStateRef.current.points] });
+  };
+  onDrawMouseUpRef.current = () => finishDrawing();
+
+  const onCanvasMouseDown = useCallback((e: ReactMouseEvent) => {
+    if (activeTool === 'select') return;
+    const target = e.target as HTMLElement;
+    if (!target.classList.contains('react-flow__pane')) return;
+    const start = toFlowPoint(e.clientX, e.clientY);
+
+    if (activeTool === 'text') {
+      snapshot();
+      const id = addShape({ kind: 'text', position: start, width: 180, height: 32, stroke: strokeColor, text: '' });
+      setActiveTool('select');
+      setSelectedShape(id);
+      return;
+    }
+
+    drawStateRef.current = { tool: activeTool, start, points: [start] };
+    document.addEventListener('mousemove', onDrawMouseMoveRef.current!);
+    document.addEventListener('mouseup', onDrawMouseUpRef.current!);
+  }, [activeTool, toFlowPoint, addShape, setActiveTool, setSelectedShape, snapshot, strokeColor]);
+
+  const drawPreviewNode: ShapeNodeType | null = useMemo(() => {
+    if (!drawPreview) return null;
+    const { tool, start, points } = drawPreview;
+    if (tool === 'text') return null;
+    const end = points[points.length - 1] ?? start;
+    if (tool === 'pencil') {
+      const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
+      const minX = Math.min(...xs), minY = Math.min(...ys);
+      return {
+        id: '__draw-preview__', type: 'shape', position: { x: minX, y: minY },
+        data: {
+          kind: 'pencil', stroke: strokeColor, fill: 'transparent',
+          width: Math.max(...xs) - minX, height: Math.max(...ys) - minY,
+          points: points.map((p) => ({ x: p.x - minX, y: p.y - minY })),
+        },
+        style: { pointerEvents: 'none' },
+      };
+    }
+    const minX = Math.min(start.x, end.x), minY = Math.min(start.y, end.y);
+    const w = Math.abs(end.x - start.x), h = Math.abs(end.y - start.y);
+    const isLineLike = tool === 'line' || tool === 'arrow';
+    return {
+      id: '__draw-preview__', type: 'shape', position: { x: minX, y: minY },
+      data: {
+        kind: tool === 'rectangle' || tool === 'ellipse' ? tool : (tool as 'line' | 'arrow'),
+        stroke: strokeColor, fill: 'transparent',
+        width: Math.max(w, MIN_DRAW_SIZE), height: Math.max(h, MIN_DRAW_SIZE),
+        points: isLineLike ? [{ x: start.x - minX, y: start.y - minY }, { x: end.x - minX, y: end.y - minY }] : undefined,
+      },
+      style: { pointerEvents: 'none' },
+    };
+  }, [drawPreview, strokeColor]);
+
+  const nodeAndShapeIds = useMemo(() => {
+    const nodeIds = new Set(nodes.map((n) => n.id));
+    const shapeIds = new Set(shapes.map((s) => s.id));
+    return { nodeIds, shapeIds };
+  }, [nodes, shapes]);
+
+  const handleCombinedNodesChange = useCallback((changes: NodeChange[]) => {
+    const nodeChanges = changes.filter((c) => 'id' in c && nodeAndShapeIds.nodeIds.has(c.id));
+    const shapeChanges = changes.filter((c) => 'id' in c && nodeAndShapeIds.shapeIds.has(c.id));
+    if (nodeChanges.length) onNodesChange(nodeChanges);
+    if (shapeChanges.length) onShapesChange(shapeChanges);
+  }, [nodeAndShapeIds, onNodesChange, onShapesChange]);
 
   // Highlight the chain connected to the hovered node; dim everything else.
   const connectedIds = useMemo(() => {
@@ -153,6 +302,32 @@ export default function ArchitectureCanvas() {
     ];
   }, [menu, duplicateNode, copyNode, deleteNode, clipboard, pasteNode, autoLayout]);
 
+  const shapesForDisplay = useMemo(
+    () => shapes.map((s) => ({ ...s, selected: s.id === selectedShapeId })),
+    [shapes, selectedShapeId]
+  );
+
+  const allNodes = useMemo(
+    () => [...displayNodes, ...shapesForDisplay, ...(drawPreviewNode ? [drawPreviewNode] : [])],
+    [displayNodes, shapesForDisplay, drawPreviewNode]
+  );
+
+  const isDrawing = activeTool !== 'select';
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && activeTool !== 'select') {
+        drawStateRef.current = null;
+        setDrawPreview(null);
+        if (onDrawMouseMoveRef.current) document.removeEventListener('mousemove', onDrawMouseMoveRef.current);
+        if (onDrawMouseUpRef.current) document.removeEventListener('mouseup', onDrawMouseUpRef.current);
+        setActiveTool('select');
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [activeTool, setActiveTool]);
+
   return (
     <div
       ref={dropRef}
@@ -161,9 +336,9 @@ export default function ArchitectureCanvas() {
       id="architecture-canvas"
     >
       <ReactFlow
-        nodes={displayNodes}
+        nodes={allNodes}
         edges={displayEdges}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleCombinedNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onInit={(instance) => {
@@ -176,7 +351,8 @@ export default function ArchitectureCanvas() {
         }}
         onDrop={onDrop}
         onDragOver={onDragOver}
-        onPaneClick={() => { setSelectedNode(null); setMenu(null); }}
+        onMouseDown={onCanvasMouseDown}
+        onPaneClick={() => { setSelectedNode(null); setSelectedShape(null); setMenu(null); }}
         onNodeDragStart={() => snapshot()}
         onNodeMouseEnter={(_, node) => setHoveredId(node.id)}
         onNodeMouseLeave={() => setHoveredId(null)}
@@ -185,6 +361,9 @@ export default function ArchitectureCanvas() {
         onMove={onMove}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
+        panOnDrag={!isDrawing}
+        nodesDraggable={!isDrawing}
+        elementsSelectable={!isDrawing}
         snapToGrid
         snapGrid={[16, 16]}
         deleteKeyCode="Delete"
@@ -192,6 +371,7 @@ export default function ArchitectureCanvas() {
           width: '100%',
           height: '100%',
           background: isDark ? '#0a0a0a' : '#f8fafc',
+          cursor: isDrawing ? 'crosshair' : undefined,
         }}
       >
         <Background
@@ -222,6 +402,8 @@ export default function ArchitectureCanvas() {
           maskColor={isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.7)'}
         />
       </ReactFlow>
+
+      <DrawToolbar/>
 
       <div className="absolute bottom-[130px] left-3 px-2 py-1 rounded-md text-[10px] font-medium tabular-nums select-none pointer-events-none
         bg-white/90 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-700 text-slate-500 dark:text-zinc-400">

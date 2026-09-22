@@ -16,6 +16,10 @@ import type {
   NodeData,
   ValidationIssue,
   Project,
+  ShapeNode,
+  ShapeData,
+  ShapeKind,
+  ToolId,
 } from '@/types';
 import { NODE_CONFIG } from '@/components/nodes/nodeConfig';
 
@@ -24,12 +28,16 @@ const MAX_HISTORY = 50;
 interface HistoryEntry {
   nodes: ArchNode[];
   edges: ArchEdge[];
+  shapes: ShapeNode[];
 }
 
 interface CanvasStore {
   nodes: ArchNode[];
   edges: ArchEdge[];
+  shapes: ShapeNode[];
   selectedNodeId: string | null;
+  selectedShapeId: string | null;
+  activeTool: ToolId;
   theme: 'light' | 'dark';
   history: HistoryEntry[];
   future: HistoryEntry[];
@@ -43,7 +51,24 @@ interface CanvasStore {
   // React Flow handlers
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
+  onShapesChange: (changes: NodeChange[]) => void;
   onConnect: (connection: Connection) => void;
+
+  // Shape actions
+  setActiveTool: (tool: ToolId) => void;
+  setSelectedShape: (id: string | null) => void;
+  addShape: (shape: {
+    kind: ShapeKind;
+    position: { x: number; y: number };
+    width: number;
+    height: number;
+    stroke: string;
+    fill?: string;
+    text?: string;
+    points?: { x: number; y: number }[];
+  }) => string;
+  updateShapeData: (id: string, data: Partial<ShapeData>) => void;
+  deleteShape: (id: string) => void;
 
   // Node actions
   addNode: (type: NodeType, position: { x: number; y: number }) => void;
@@ -78,8 +103,8 @@ interface CanvasStore {
   dismissValidation: () => void;
 }
 
-function snapshotKey(nodes: ArchNode[], edges: ArchEdge[]): string {
-  return JSON.stringify({ nodes, edges });
+function snapshotKey(nodes: ArchNode[], edges: ArchEdge[], shapes: ShapeNode[]): string {
+  return JSON.stringify({ nodes, edges, shapes });
 }
 
 function deepClone<T>(val: T): T {
@@ -89,7 +114,10 @@ function deepClone<T>(val: T): T {
 export const useCanvasStore = create<CanvasStore>((set, get) => ({
   nodes: [],
   edges: [],
+  shapes: [],
   selectedNodeId: null,
+  selectedShapeId: null,
+  activeTool: 'select',
   theme: 'dark',
   history: [],
   future: [],
@@ -98,7 +126,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   showValidation: false,
   clipboard: null,
   recentTypes: [],
-  savedSnapshot: snapshotKey([], []),
+  savedSnapshot: snapshotKey([], [], []),
 
   onNodesChange: (changes) => {
     set((state) => ({
@@ -109,6 +137,47 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   onEdgesChange: (changes) => {
     set((state) => ({
       edges: applyEdgeChanges(changes, state.edges) as ArchEdge[],
+    }));
+  },
+
+  onShapesChange: (changes) => {
+    const removed = changes.filter((c) => c.type === 'remove').map((c) => c.id);
+    if (removed.length > 0) get().snapshot();
+    set((state) => ({
+      shapes: applyNodeChanges(changes, state.shapes) as ShapeNode[],
+      selectedShapeId: removed.includes(state.selectedShapeId ?? '') ? null : state.selectedShapeId,
+    }));
+  },
+
+  setActiveTool: (tool) => set({ activeTool: tool, selectedShapeId: null, selectedNodeId: null }),
+
+  setSelectedShape: (id) => set({ selectedShapeId: id, selectedNodeId: id ? null : get().selectedNodeId }),
+
+  addShape: ({ kind, position, width, height, stroke, fill, text, points }) => {
+    get().snapshot();
+    const id = uuidv4();
+    const shape: ShapeNode = {
+      id,
+      type: 'shape',
+      position,
+      data: { kind, stroke, fill: fill ?? 'transparent', width, height, text, points },
+      style: { width, height },
+    };
+    set((state) => ({ shapes: [...state.shapes, shape] }));
+    return id;
+  },
+
+  updateShapeData: (id, data) => {
+    set((state) => ({
+      shapes: state.shapes.map((s) => (s.id === id ? { ...s, data: { ...s.data, ...data } } : s)),
+    }));
+  },
+
+  deleteShape: (id) => {
+    get().snapshot();
+    set((state) => ({
+      shapes: state.shapes.filter((s) => s.id !== id),
+      selectedShapeId: state.selectedShapeId === id ? null : state.selectedShapeId,
     }));
   },
 
@@ -286,50 +355,55 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   setSelectedNode: (id) => {
-    set({ selectedNodeId: id });
+    set({ selectedNodeId: id, selectedShapeId: id ? null : get().selectedShapeId });
   },
 
   snapshot: () => {
-    const { nodes, edges, history } = get();
+    const { nodes, edges, shapes, history } = get();
     const entry: HistoryEntry = {
       nodes: deepClone(nodes),
       edges: deepClone(edges),
+      shapes: deepClone(shapes),
     };
     const newHistory = [...history, entry].slice(-MAX_HISTORY);
     set({ history: newHistory, future: [] });
   },
 
   undo: () => {
-    const { history, nodes, edges, future } = get();
+    const { history, nodes, edges, shapes, future } = get();
     if (history.length === 0) return;
     const prev = history[history.length - 1];
     const newFuture: HistoryEntry[] = [
-      { nodes: deepClone(nodes), edges: deepClone(edges) },
+      { nodes: deepClone(nodes), edges: deepClone(edges), shapes: deepClone(shapes) },
       ...future,
     ];
     set({
       nodes: prev.nodes,
       edges: prev.edges,
+      shapes: prev.shapes,
       history: history.slice(0, -1),
       future: newFuture,
       selectedNodeId: null,
+      selectedShapeId: null,
     });
   },
 
   redo: () => {
-    const { future, nodes, edges, history } = get();
+    const { future, nodes, edges, shapes, history } = get();
     if (future.length === 0) return;
     const next = future[0];
     const newHistory: HistoryEntry[] = [
       ...history,
-      { nodes: deepClone(nodes), edges: deepClone(edges) },
+      { nodes: deepClone(nodes), edges: deepClone(edges), shapes: deepClone(shapes) },
     ];
     set({
       nodes: next.nodes,
       edges: next.edges,
+      shapes: next.shapes,
       history: newHistory,
       future: future.slice(1),
       selectedNodeId: null,
+      selectedShapeId: null,
     });
   },
 
@@ -351,22 +425,25 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   loadProject: (project) => {
+    const shapes = project.shapes ?? [];
     set({
       nodes: project.nodes,
       edges: project.edges,
+      shapes,
       projectName: project.name,
       selectedNodeId: null,
+      selectedShapeId: null,
       history: [],
       future: [],
       validationIssues: [],
       showValidation: false,
-      savedSnapshot: snapshotKey(project.nodes, project.edges),
+      savedSnapshot: snapshotKey(project.nodes, project.edges, shapes),
     });
   },
 
   markSaved: () => {
-    const { nodes, edges } = get();
-    set({ savedSnapshot: snapshotKey(nodes, edges) });
+    const { nodes, edges, shapes } = get();
+    set({ savedSnapshot: snapshotKey(nodes, edges, shapes) });
   },
 
   clearCanvas: () => {
@@ -374,19 +451,22 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     set({
       nodes: [],
       edges: [],
+      shapes: [],
       selectedNodeId: null,
+      selectedShapeId: null,
       validationIssues: [],
       showValidation: false,
     });
   },
 
   getProject: () => {
-    const { nodes, edges, projectName } = get();
+    const { nodes, edges, shapes, projectName } = get();
     return {
       id: uuidv4(),
       name: projectName,
       nodes,
       edges,
+      shapes,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

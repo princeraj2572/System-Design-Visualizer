@@ -109,11 +109,37 @@ export interface NodeData {
 export type ArchNode = Node<NodeData>;
 export type ArchEdge = Edge;
 
+// Free-form drawing annotations (rectangle/ellipse/line/arrow/pencil/text) —
+// deliberately kept as a separate domain from ArchNode/NodeData, since they
+// don't participate in system-design validation, connection rules, or the
+// node palette. Rendered by ShapeNode, merged into React Flow's node list
+// alongside ArchNode at the canvas boundary.
+export type ShapeKind = 'rectangle' | 'ellipse' | 'line' | 'arrow' | 'pencil' | 'text';
+
+export interface ShapeData {
+  kind: ShapeKind;
+  stroke: string;
+  fill: string;
+  /** Bounding-box size, set at creation time (no post-creation resize in v1). */
+  width: number;
+  height: number;
+  text?: string;
+  /** Points relative to the shape node's own position. Line/arrow use
+   * exactly two (in drag order, so direction is preserved); pencil uses
+   * the full stroke path. Unused by rectangle, ellipse, and text. */
+  points?: { x: number; y: number }[];
+}
+
+export type ShapeNode = Node<ShapeData>;
+
+export type ToolId = 'select' | 'rectangle' | 'ellipse' | 'line' | 'arrow' | 'pencil' | 'text';
+
 export interface Project {
   id: string;
   name: string;
   nodes: ArchNode[];
   edges: ArchEdge[];
+  shapes: ShapeNode[];
   createdAt: string;
   updatedAt: string;
 }
