@@ -96,20 +96,20 @@ export default function ArchitectureCanvas() {
         style={{
           width: '100%',
           height: '100%',
-          background: isDark ? '#080d1a' : '#f8fafc',
+          background: isDark ? '#0a0a0a' : '#f8fafc',
         }}
       >
         <Background
           variant={BackgroundVariant.Lines}
           gap={24}
           size={0.5}
-          color={isDark ? '#1a2035' : '#e5e7eb'}
+          color={isDark ? '#262626' : '#e5e7eb'}
         />
         <Controls
           showInteractive={false}
           style={{
-            background: isDark ? '#0d1424' : '#fff',
-            border: `1px solid ${isDark ? '#1e2a40' : '#e5e7eb'}`,
+            background: isDark ? '#18181b' : '#fff',
+            border: `1px solid ${isDark ? '#27272a' : '#e5e7eb'}`,
             borderRadius: 10,
             boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.5)' : '0 4px 12px rgba(0,0,0,0.08)',
           }}
@@ -119,8 +119,8 @@ export default function ArchitectureCanvas() {
             NODE_CONFIG[node.data?.nodeType as NodeType]?.accent ?? '#6b7280'
           }
           style={{
-            background: isDark ? '#0d1424' : '#fff',
-            border: `1px solid ${isDark ? '#1e2a40' : '#e5e7eb'}`,
+            background: isDark ? '#18181b' : '#fff',
+            border: `1px solid ${isDark ? '#27272a' : '#e5e7eb'}`,
             borderRadius: 10,
             boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.5)' : '0 4px 12px rgba(0,0,0,0.08)',
           }}
@@ -131,18 +131,18 @@ export default function ArchitectureCanvas() {
       {nodes.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
           <div className="text-center flex flex-col items-center gap-3">
-            <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/40 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700/40 flex items-center justify-center">
               <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
-                <circle cx="6" cy="16" r="4" className="stroke-slate-300 dark:stroke-slate-600" strokeWidth="1.5"/>
-                <circle cx="26" cy="7" r="3.5" className="stroke-slate-300 dark:stroke-slate-600" strokeWidth="1.5"/>
-                <circle cx="26" cy="25" r="3.5" className="stroke-slate-300 dark:stroke-slate-600" strokeWidth="1.5"/>
-                <line x1="10" y1="14.5" x2="22.5" y2="8.5" className="stroke-slate-200 dark:stroke-slate-700" strokeWidth="1.2"/>
-                <line x1="10" y1="17.5" x2="22.5" y2="23.5" className="stroke-slate-200 dark:stroke-slate-700" strokeWidth="1.2"/>
+                <circle cx="6" cy="16" r="4" className="stroke-slate-300 dark:stroke-zinc-600" strokeWidth="1.5"/>
+                <circle cx="26" cy="7" r="3.5" className="stroke-slate-300 dark:stroke-zinc-600" strokeWidth="1.5"/>
+                <circle cx="26" cy="25" r="3.5" className="stroke-slate-300 dark:stroke-zinc-600" strokeWidth="1.5"/>
+                <line x1="10" y1="14.5" x2="22.5" y2="8.5" className="stroke-slate-200 dark:stroke-zinc-700" strokeWidth="1.2"/>
+                <line x1="10" y1="17.5" x2="22.5" y2="23.5" className="stroke-slate-200 dark:stroke-zinc-700" strokeWidth="1.2"/>
               </svg>
             </div>
             <div>
-              <p className="text-[13px] font-semibold text-slate-400 dark:text-slate-500">Start designing</p>
-              <p className="text-[11px] text-slate-400 dark:text-slate-600 mt-1">
+              <p className="text-[13px] font-semibold text-slate-400 dark:text-zinc-500">Start designing</p>
+              <p className="text-[11px] text-slate-400 dark:text-zinc-600 mt-1">
                 Drag components from the left panel
               </p>
             </div>

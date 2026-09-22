@@ -82,20 +82,20 @@
 }
 
 .dark .react-flow__controls {
-  background: #0f172a;
-  border-color: #1e293b;
+  background: #18181b;
+  border-color: #27272a;
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
 }
 .dark .react-flow__controls button {
-  background-color: #0f172a;
-  border-color: #1e293b;
-  color: #64748b;
-  fill: #64748b;
+  background-color: #18181b;
+  border-color: #27272a;
+  color: #71717a;
+  fill: #71717a;
 }
 .dark .react-flow__controls button:hover {
-  background-color: #1e293b;
-  color: #e2e8f0;
-  fill: #e2e8f0;
+  background-color: #27272a;
+  color: #e4e4e7;
+  fill: #e4e4e7;
 }
 .react-flow__controls button svg { fill: inherit; }
 
@@ -137,8 +137,8 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
-.dark ::-webkit-scrollbar-thumb { background: #334155; }
-.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
+.dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #52525b; }
 
 /* ─── Focus ring base ──────────────────────────────────────────────────────── */
 input:focus, textarea:focus {

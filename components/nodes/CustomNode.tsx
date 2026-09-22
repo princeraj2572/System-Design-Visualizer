@@ -11,6 +11,8 @@ function CustomNode({ id, data, selected }: NodeProps<NodeData>) {
   const config = NODE_CONFIG[data.nodeType];
   const { Icon } = config;
   const setSelectedNode = useCanvasStore((s) => s.setSelectedNode);
+  const theme = useCanvasStore((s) => s.theme);
+  const handleBorderColor = theme === 'dark' ? '#27272a' : '#ffffff';
 
   const handleClick = useCallback(() => setSelectedNode(id), [id, setSelectedNode]);
 
@@ -18,7 +20,7 @@ function CustomNode({ id, data, selected }: NodeProps<NodeData>) {
     <div
       onClick={handleClick}
       className="relative flex flex-col w-40 rounded-xl cursor-pointer select-none overflow-hidden
-        bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/70
+        bg-white dark:bg-zinc-800/90 border border-slate-200 dark:border-zinc-700/70
         shadow-sm hover:shadow-md dark:shadow-black/30"
       style={{
         borderColor: selected ? config.accent : undefined,
@@ -43,7 +45,7 @@ function CustomNode({ id, data, selected }: NodeProps<NodeData>) {
 
         {/* Name */}
         <span className="text-[11px] font-semibold text-center leading-tight w-full truncate px-1
-          text-slate-800 dark:text-slate-100">
+          text-slate-800 dark:text-zinc-100">
           {data.name || config.defaultName}
         </span>
 
@@ -64,13 +66,13 @@ function CustomNode({ id, data, selected }: NodeProps<NodeData>) {
 
       {/* Handles */}
       <Handle type="target" position={Position.Top} className="!w-2 !h-2 !border-2 !-top-[5px]"
-        style={{ backgroundColor: config.accent, borderColor: 'white' }}/>
+        style={{ backgroundColor: config.accent, borderColor: handleBorderColor }}/>
       <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !border-2 !-bottom-[5px]"
-        style={{ backgroundColor: config.accent, borderColor: 'white' }}/>
+        style={{ backgroundColor: config.accent, borderColor: handleBorderColor }}/>
       <Handle type="target" position={Position.Left} id="left" className="!w-2 !h-2 !border-2 !-left-[5px]"
-        style={{ backgroundColor: config.accent, borderColor: 'white' }}/>
+        style={{ backgroundColor: config.accent, borderColor: handleBorderColor }}/>
       <Handle type="source" position={Position.Right} id="right" className="!w-2 !h-2 !border-2 !-right-[5px]"
-        style={{ backgroundColor: config.accent, borderColor: 'white' }}/>
+        style={{ backgroundColor: config.accent, borderColor: handleBorderColor }}/>
     </div>
   );
 }

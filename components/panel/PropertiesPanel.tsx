@@ -30,17 +30,17 @@ export default function PropertiesPanel() {
 
   if (!selectedNode) {
     return (
-      <aside className="w-60 flex-shrink-0 bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center gap-3">
-        <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
+      <aside className="w-60 flex-shrink-0 bg-white dark:bg-zinc-900 border-l border-slate-200 dark:border-zinc-800 flex flex-col items-center justify-center gap-3">
+        <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 flex items-center justify-center">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-            className="w-5 h-5 text-slate-300 dark:text-slate-600">
+            className="w-5 h-5 text-slate-300 dark:text-zinc-600">
             <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
             <rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
           </svg>
         </div>
         <div className="text-center px-5">
-          <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">No component selected</p>
-          <p className="text-[10px] text-slate-300 dark:text-slate-600 mt-1 leading-relaxed">
+          <p className="text-[11px] font-semibold text-slate-400 dark:text-zinc-500">No component selected</p>
+          <p className="text-[10px] text-slate-300 dark:text-zinc-600 mt-1 leading-relaxed">
             Click a node on the canvas to inspect and edit its properties
           </p>
         </div>
@@ -56,22 +56,22 @@ export default function PropertiesPanel() {
     updateNodeData(selectedNode.id, { [field]: value });
   };
 
-  const inputCls = `w-full rounded-lg px-2.5 py-1.5 text-[11px] text-slate-800 dark:text-slate-200
-    bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800
-    placeholder-slate-400 dark:placeholder-slate-600
+  const inputCls = `w-full rounded-lg px-2.5 py-1.5 text-[11px] text-slate-800 dark:text-zinc-200
+    bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800
+    placeholder-slate-400 dark:placeholder-zinc-600
     focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600
     transition-colors resize-none`;
 
   return (
-    <aside className="w-60 flex-shrink-0 bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
+    <aside className="w-60 flex-shrink-0 bg-white dark:bg-zinc-900 border-l border-slate-200 dark:border-zinc-800 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-3.5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2.5">
+      <div className="px-3.5 py-3 border-b border-slate-100 dark:border-zinc-800 flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ backgroundColor: `${config.accent}18` }}>
           <Icon size={16} style={{ color: config.accent }} strokeWidth={2}/>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-100 truncate">
+          <p className="text-[12px] font-semibold text-slate-800 dark:text-zinc-100 truncate">
             {form.name || config.defaultName}
           </p>
           <p className="text-[9px] font-semibold uppercase tracking-wide mt-0.5" style={{ color: config.accent }}>
@@ -85,7 +85,7 @@ export default function PropertiesPanel() {
       <div className="flex-1 overflow-y-auto px-3.5 py-3 space-y-3">
         {FIELDS.map(({ field, label, multiline, placeholder }) => (
           <div key={field}>
-            <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
+            <label className="block text-[9px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5">
               {label}
             </label>
             {multiline
@@ -100,7 +100,7 @@ export default function PropertiesPanel() {
         {/* Connection rules */}
         {config.allowedTargets.length > 0 && (
           <div>
-            <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
+            <label className="block text-[9px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5">
               Connects to
             </label>
             <div className="flex flex-wrap gap-1">
@@ -108,15 +108,15 @@ export default function PropertiesPanel() {
                 const tc = NODE_CONFIG[t as NodeType];
                 return (
                   <span key={t} className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-medium
-                    bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800
-                    text-slate-500 dark:text-slate-400">
+                    bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800
+                    text-slate-500 dark:text-zinc-400">
                     <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: tc.accent }}/>
                     {tc.label}
                   </span>
                 );
               })}
             </div>
-            <p className="text-[9px] text-slate-400 dark:text-slate-600 mt-1.5 leading-relaxed">
+            <p className="text-[9px] text-slate-400 dark:text-zinc-600 mt-1.5 leading-relaxed">
               {config.description}
             </p>
           </div>
@@ -124,15 +124,15 @@ export default function PropertiesPanel() {
 
         {/* Node ID */}
         <div>
-          <label className="block text-[9px] font-bold text-slate-300 dark:text-slate-700 uppercase tracking-widest mb-1">
+          <label className="block text-[9px] font-bold text-slate-300 dark:text-zinc-700 uppercase tracking-widest mb-1">
             Node ID
           </label>
-          <p className="text-[9px] text-slate-300 dark:text-slate-700 font-mono truncate">{selectedNode.id}</p>
+          <p className="text-[9px] text-slate-300 dark:text-zinc-700 font-mono truncate">{selectedNode.id}</p>
         </div>
       </div>
 
       {/* Delete */}
-      <div className="px-3.5 pb-3.5 pt-2.5 border-t border-slate-100 dark:border-slate-800">
+      <div className="px-3.5 pb-3.5 pt-2.5 border-t border-slate-100 dark:border-zinc-800">
         <button onClick={() => deleteNode(selectedNode.id)}
           className="w-full py-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1.5
             bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50
