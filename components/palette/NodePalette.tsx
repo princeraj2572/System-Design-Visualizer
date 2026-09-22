@@ -2,16 +2,19 @@
 
 import { useRef, useState, type DragEvent } from 'react';
 import { Search, ChevronDown, Clock } from 'lucide-react';
-import type { NodeType } from '@/types';
-import { NODE_CONFIG, NODE_CATEGORIES } from '@/components/nodes/nodeConfig';
+import type { NodeProvider, NodeType } from '@/types';
+import { NODE_CONFIG, PROVIDER_CATEGORIES, PROVIDER_LABELS } from '@/components/nodes/nodeConfig';
 import { useCanvasStore } from '@/store/useCanvasStore';
 
 interface NodePaletteProps {
   onDragStart: (event: DragEvent, nodeType: NodeType) => void;
 }
 
+const PROVIDERS: NodeProvider[] = ['generic', 'aws', 'azure', 'gcp'];
+
 export default function NodePalette({ onDragStart }: NodePaletteProps) {
   const [query, setQuery] = useState('');
+  const [provider, setProvider] = useState<NodeProvider>('generic');
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const addNode = useCanvasStore((s) => s.addNode);
   const recentTypes = useCanvasStore((s) => s.recentTypes);
@@ -25,9 +28,13 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
 
   const toggleCategory = (id: string) => setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
 
+  const categories = PROVIDER_CATEGORIES[provider];
+  const recentInProvider = recentTypes.filter((t) => NODE_CONFIG[t].provider === provider);
+
   const filtered = query.trim()
     ? (Object.entries(NODE_CONFIG) as [NodeType, typeof NODE_CONFIG[NodeType]][])
         .filter(([, c]) => {
+          if (c.provider !== provider) return false;
           const q = query.toLowerCase();
           return c.label.toLowerCase().includes(q) || c.defaultTechnology.toLowerCase().includes(q);
         })
@@ -41,6 +48,24 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
         <h2 className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest mb-2">
           Components
         </h2>
+
+        {/* Provider tabs */}
+        <div className="flex items-center gap-0.5 p-0.5 mb-2 rounded-lg bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800">
+          {PROVIDERS.map((p) => (
+            <button
+              key={p}
+              onClick={() => setProvider(p)}
+              className={`flex-1 px-1.5 py-1 rounded-md text-[10px] font-semibold transition-colors ${
+                provider === p
+                  ? 'bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 shadow-sm'
+                  : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300'
+              }`}
+            >
+              {PROVIDER_LABELS[p]}
+            </button>
+          ))}
+        </div>
+
         {/* Search */}
         <div className="relative">
           <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-zinc-600 pointer-events-none"/>
@@ -70,7 +95,7 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
           )
         ) : (
           <>
-            {recentTypes.length > 0 && (
+            {recentInProvider.length > 0 && (
               <div>
                 <div className="flex items-center gap-1.5 px-1 mb-1">
                   <Clock size={10} className="text-slate-400 dark:text-zinc-600"/>
@@ -80,12 +105,12 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
                   <div className="flex-1 h-px bg-slate-100 dark:bg-zinc-800"/>
                 </div>
                 <div className="space-y-0.5">
-                  {recentTypes.map((type) => <PaletteItem key={`recent-${type}`} type={type} onDragStart={onDragStart} onClick={handleAdd}/>)}
+                  {recentInProvider.map((type) => <PaletteItem key={`recent-${type}`} type={type} onDragStart={onDragStart} onClick={handleAdd}/>)}
                 </div>
               </div>
             )}
 
-            {NODE_CATEGORIES.map((category) => {
+            {categories.map((category) => {
               const isCollapsed = collapsed[category.id];
               return (
                 <div key={category.id}>
