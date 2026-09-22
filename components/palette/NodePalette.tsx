@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useState, type DragEvent } from 'react';
-import { Search, ChevronDown, Clock } from 'lucide-react';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
+import { Search, ChevronDown, Clock, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import type { NodeProvider, NodeType } from '@/types';
 import { NODE_CONFIG, PROVIDER_CATEGORIES, PROVIDER_LABELS } from '@/components/nodes/nodeConfig';
 import { useCanvasStore } from '@/store/useCanvasStore';
@@ -12,21 +12,71 @@ interface NodePaletteProps {
 
 const PROVIDERS: NodeProvider[] = ['generic', 'aws', 'azure', 'gcp'];
 
+const MIN_WIDTH = 180;
+const MAX_WIDTH = 420;
+const DEFAULT_WIDTH = 224;
+const RAIL_WIDTH = 40;
+const WIDTH_KEY = 'sysvis-palette-width';
+const COLLAPSED_KEY = 'sysvis-palette-collapsed';
+
 export default function NodePalette({ onDragStart }: NodePaletteProps) {
   const [query, setQuery] = useState('');
   const [provider, setProvider] = useState<NodeProvider>('generic');
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
+  const widthRef = useRef(width);
   const addNode = useCanvasStore((s) => s.addNode);
   const recentTypes = useCanvasStore((s) => s.recentTypes);
   // Click-to-add cascades new nodes diagonally so they don't stack exactly on top of each other.
   const clickAddCount = useRef(0);
 
+  useEffect(() => { widthRef.current = width; }, [width]);
+
+  // Restore saved width/collapsed state on mount (SSR has no localStorage, so
+  // this can't be the initial useState value without a hydration mismatch).
+  useEffect(() => {
+    try {
+      const savedWidth = localStorage.getItem(WIDTH_KEY);
+      if (savedWidth) setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, parseInt(savedWidth, 10))));
+      setPanelCollapsed(localStorage.getItem(COLLAPSED_KEY) === 'true');
+    } catch {}
+  }, []);
+
+  const togglePanelCollapsed = () => {
+    setPanelCollapsed((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(COLLAPSED_KEY, String(next)); } catch {}
+      return next;
+    });
+  };
+
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = widthRef.current;
+    const onMove = (ev: MouseEvent) => {
+      const next = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + (ev.clientX - startX)));
+      // Update the ref synchronously — mouseup can fire before React flushes
+      // the effect that would otherwise keep it in sync with state.
+      widthRef.current = next;
+      setWidth(next);
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      try { localStorage.setItem(WIDTH_KEY, String(widthRef.current)); } catch {}
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+
+  const toggleCategory = (id: string) => setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
+
   const handleAdd = (type: NodeType) => {
     const step = (clickAddCount.current++ % 8) * 28;
     addNode(type, { x: 280 + step, y: 160 + step });
   };
-
-  const toggleCategory = (id: string) => setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const categories = PROVIDER_CATEGORIES[provider];
   const recentInProvider = recentTypes.filter((t) => NODE_CONFIG[t].provider === provider);
@@ -41,13 +91,56 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
         .map(([type]) => type)
     : null;
 
+  if (panelCollapsed) {
+    return (
+      <aside
+        style={{ width: RAIL_WIDTH }}
+        className="flex-shrink-0 bg-white dark:bg-zinc-900 border-r border-slate-200 dark:border-zinc-800 flex flex-col items-center pt-3"
+      >
+        <button
+          onClick={togglePanelCollapsed}
+          title="Show components panel"
+          className="p-1.5 rounded-md text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-200
+            hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <PanelLeftOpen size={15}/>
+        </button>
+      </aside>
+    );
+  }
+
   return (
-    <aside className="w-56 flex-shrink-0 bg-white dark:bg-zinc-900 border-r border-slate-200 dark:border-zinc-800 flex flex-col overflow-hidden">
+    <aside
+      style={{ width }}
+      className="relative flex-shrink-0 bg-white dark:bg-zinc-900 border-r border-slate-200 dark:border-zinc-800 flex flex-col overflow-hidden"
+    >
+      {/* Resize handle — wider invisible hit area than the visible 1px line.
+          Kept fully inside the aside's own box: the aside has overflow-hidden
+          (to clip the accent strip inside PaletteItems), which would clip any
+          part of this handle positioned outside it, the same way it clipped
+          node connection handles elsewhere in the app. */}
+      <div
+        onMouseDown={startResize}
+        className="absolute top-0 right-0 h-full w-3 cursor-col-resize z-10 group"
+      >
+        <div className="w-px h-full ml-auto bg-transparent group-hover:bg-indigo-400/50 group-active:bg-indigo-400/70 transition-colors"/>
+      </div>
+
       {/* Header */}
       <div className="px-3 pt-3 pb-2 border-b border-slate-100 dark:border-zinc-800">
-        <h2 className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest mb-2">
-          Components
-        </h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
+            Components
+          </h2>
+          <button
+            onClick={togglePanelCollapsed}
+            title="Hide components panel"
+            className="p-0.5 rounded text-slate-300 dark:text-zinc-600 hover:text-slate-600 dark:hover:text-zinc-300
+              hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <PanelLeftClose size={13}/>
+          </button>
+        </div>
 
         {/* Provider tabs */}
         <div className="flex items-center gap-0.5 p-0.5 mb-2 rounded-lg bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800">
