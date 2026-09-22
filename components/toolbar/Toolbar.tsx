@@ -50,7 +50,7 @@ function BrandMark() {
 }
 
 function Divider() {
-  return <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-0.5"/>;
+  return <div className="h-4 w-px bg-slate-200 dark:bg-zinc-800 mx-0.5"/>;
 }
 
 function Btn({ onClick, disabled, title, children, variant = 'default' }: {
@@ -59,8 +59,8 @@ function Btn({ onClick, disabled, title, children, variant = 'default' }: {
 }) {
   const base = 'flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap';
   const variants = {
-    default: 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800',
-    danger:  'text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40',
+    default: 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800',
+    danger:  'text-slate-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40',
   };
   return (
     <button onClick={onClick} disabled={disabled} title={title} className={`${base} ${variants[variant]}`}>
@@ -103,7 +103,7 @@ export default function Toolbar() {
   const handleClear = useCallback(() => { if (window.confirm('Clear canvas? This can be undone.')) clearCanvas(); }, [clearCanvas]);
 
   return (
-    <header className="h-11 flex-shrink-0 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center px-3 gap-0.5 relative z-20">
+    <header className="h-11 flex-shrink-0 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 flex items-center px-3 gap-0.5 relative z-20">
       <BrandMark />
       <Divider />
 
@@ -111,10 +111,10 @@ export default function Toolbar() {
         type="text" value={projectName} onChange={(e) => setProjectName(e.target.value)}
         placeholder="Untitled Architecture"
         className="bg-transparent rounded px-1.5 py-1 text-[12px] font-medium
-          text-slate-800 dark:text-slate-200 w-44 border border-transparent
-          hover:border-slate-200 dark:hover:border-slate-700
+          text-slate-800 dark:text-zinc-200 w-44 border border-transparent
+          hover:border-slate-200 dark:hover:border-zinc-700
           focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none
-          placeholder-slate-400 dark:placeholder-slate-600 transition-colors"
+          placeholder-slate-400 dark:placeholder-zinc-600 transition-colors"
       />
 
       <Divider />
@@ -129,8 +129,8 @@ export default function Toolbar() {
       <Btn onClick={handleExportJSON} title="Download as JSON"><CodeIcon/> JSON</Btn>
       <Btn onClick={handleExportPNG} title="Download as PNG"><ImageIcon/> PNG</Btn>
       <label className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium
-        text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100
-        hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+        text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100
+        hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors">
         <UploadIcon/> Import
         <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport}/>
       </label>
@@ -143,14 +143,14 @@ export default function Toolbar() {
       <div className="flex-1"/>
 
       <button onClick={toggleTheme}
-        className="flex items-center justify-center w-7 h-7 rounded-md text-slate-400 dark:text-slate-500
-          hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        className="flex items-center justify-center w-7 h-7 rounded-md text-slate-400 dark:text-zinc-500
+          hover:text-slate-700 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
         title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
         {theme === 'dark' ? <SunIcon/> : <MoonIcon/>}
       </button>
 
       {toast && (
-        <div className="absolute bottom-[-42px] left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-slate-800 text-slate-100 dark:text-slate-200 text-[11px] font-medium px-3.5 py-2 rounded-lg shadow-lg border border-slate-700 dark:border-slate-700 whitespace-nowrap z-50">
+        <div className="absolute bottom-[-42px] left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-zinc-800 text-slate-100 dark:text-zinc-200 text-[11px] font-medium px-3.5 py-2 rounded-lg shadow-lg border border-slate-700 dark:border-zinc-700 whitespace-nowrap z-50">
           {toast}
         </div>
       )}
@@ -162,13 +162,13 @@ export default function Toolbar() {
 
 function ValidationPanel({ issues, onClose }: { issues: ValidationIssue[]; onClose: () => void }) {
   return (
-    <div className="absolute top-12 right-3 z-50 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 dark:border-slate-800">
+    <div className="absolute top-12 right-3 z-50 w-80 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-xl shadow-xl overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 dark:border-zinc-800">
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${issues.length === 0 ? 'bg-emerald-500' : 'bg-amber-500'}`}/>
-          <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">Validation Results</span>
+          <span className="text-[11px] font-semibold text-slate-700 dark:text-zinc-200">Validation Results</span>
         </div>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors text-lg leading-none">×</button>
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors text-lg leading-none">×</button>
       </div>
       <div className="p-3 space-y-1.5 max-h-72 overflow-y-auto">
         {issues.length === 0 ? (
