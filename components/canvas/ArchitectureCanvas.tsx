@@ -6,6 +6,7 @@ import ReactFlow, {
   Controls,
   MiniMap,
   BackgroundVariant,
+  MarkerType,
   type ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -19,6 +20,7 @@ const defaultEdgeOptions = {
   type: 'smoothstep',
   style: { stroke: '#6366f1', strokeWidth: 1.5 },
   animated: true,
+  markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: '#6366f1' },
 };
 
 export default function ArchitectureCanvas() {

@@ -15,13 +15,26 @@ function CustomNode({ id, data, selected }: NodeProps<NodeData>) {
   const handleBorderColor = theme === 'dark' ? '#27272a' : '#ffffff';
 
   const handleClick = useCallback(() => setSelectedNode(id), [id, setSelectedNode]);
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setSelectedNode(id);
+    }
+  }, [id, setSelectedNode]);
 
   return (
     <div
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
+      aria-label={`${data.name || config.defaultName} (${config.label})`}
       className="relative flex flex-col w-40 rounded-xl cursor-pointer select-none overflow-hidden
         bg-white dark:bg-zinc-800/90 border border-slate-200 dark:border-zinc-700/70
-        shadow-sm hover:shadow-md dark:shadow-black/30"
+        shadow-sm hover:shadow-md dark:shadow-black/30
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+        focus-visible:ring-indigo-400 dark:focus-visible:ring-offset-zinc-950"
       style={{
         borderColor: selected ? config.accent : undefined,
         boxShadow: selected

@@ -14,7 +14,10 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
 
   const filtered = query.trim()
     ? (Object.entries(NODE_CONFIG) as [NodeType, typeof NODE_CONFIG[NodeType]][])
-        .filter(([, c]) => c.label.toLowerCase().includes(query.toLowerCase()))
+        .filter(([, c]) => {
+          const q = query.toLowerCase();
+          return c.label.toLowerCase().includes(q) || c.defaultTechnology.toLowerCase().includes(q);
+        })
         .map(([type]) => type)
     : null;
 
