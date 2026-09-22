@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, type DragEvent } from 'react';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import NodePalette from '@/components/palette/NodePalette';
 import PropertiesPanel from '@/components/panel/PropertiesPanel';
+import DocumentPanel from '@/components/document/DocumentPanel';
 import Toolbar from '@/components/toolbar/Toolbar';
 import type { NodeType } from '@/types';
 
@@ -43,6 +44,7 @@ function StatusBar() {
 export default function Page() {
   const theme = useCanvasStore((s) => s.theme);
   const setTheme = useCanvasStore((s) => s.setTheme);
+  const viewMode = useCanvasStore((s) => s.viewMode);
 
   // On mount, adopt whatever theme the blocking init script (in <head>) already
   // applied to <html>, so the store stays in sync with what's on screen.
@@ -71,8 +73,13 @@ export default function Page() {
       <Toolbar />
       <div className="flex flex-1 overflow-hidden">
         <NodePalette onDragStart={onDragStart} />
-        <ArchitectureCanvas />
-        <PropertiesPanel />
+        {viewMode !== 'canvas' && <DocumentPanel />}
+        {viewMode !== 'document' && (
+          <>
+            <ArchitectureCanvas />
+            <PropertiesPanel />
+          </>
+        )}
       </div>
       <StatusBar />
     </div>

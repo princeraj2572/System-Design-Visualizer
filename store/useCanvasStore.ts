@@ -20,6 +20,7 @@ import type {
   ShapeData,
   ShapeKind,
   ToolId,
+  ViewMode,
 } from '@/types';
 import { NODE_CONFIG } from '@/components/nodes/nodeConfig';
 
@@ -47,6 +48,11 @@ interface CanvasStore {
   clipboard: ArchNode | null;
   recentTypes: NodeType[];
   savedSnapshot: string;
+  documentContent: string;
+  viewMode: ViewMode;
+
+  setDocumentContent: (text: string) => void;
+  setViewMode: (mode: ViewMode) => void;
 
   // React Flow handlers
   onNodesChange: (changes: NodeChange[]) => void;
@@ -103,8 +109,8 @@ interface CanvasStore {
   dismissValidation: () => void;
 }
 
-function snapshotKey(nodes: ArchNode[], edges: ArchEdge[], shapes: ShapeNode[]): string {
-  return JSON.stringify({ nodes, edges, shapes });
+function snapshotKey(nodes: ArchNode[], edges: ArchEdge[], shapes: ShapeNode[], documentContent: string): string {
+  return JSON.stringify({ nodes, edges, shapes, documentContent });
 }
 
 function deepClone<T>(val: T): T {
@@ -126,7 +132,12 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   showValidation: false,
   clipboard: null,
   recentTypes: [],
-  savedSnapshot: snapshotKey([], [], []),
+  documentContent: '',
+  viewMode: 'canvas',
+  savedSnapshot: snapshotKey([], [], [], ''),
+
+  setDocumentContent: (text) => set({ documentContent: text }),
+  setViewMode: (mode) => set({ viewMode: mode }),
 
   onNodesChange: (changes) => {
     set((state) => ({
@@ -426,10 +437,12 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
   loadProject: (project) => {
     const shapes = project.shapes ?? [];
+    const documentContent = project.documentContent ?? '';
     set({
       nodes: project.nodes,
       edges: project.edges,
       shapes,
+      documentContent,
       projectName: project.name,
       selectedNodeId: null,
       selectedShapeId: null,
@@ -437,13 +450,13 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       future: [],
       validationIssues: [],
       showValidation: false,
-      savedSnapshot: snapshotKey(project.nodes, project.edges, shapes),
+      savedSnapshot: snapshotKey(project.nodes, project.edges, shapes, documentContent),
     });
   },
 
   markSaved: () => {
-    const { nodes, edges, shapes } = get();
-    set({ savedSnapshot: snapshotKey(nodes, edges, shapes) });
+    const { nodes, edges, shapes, documentContent } = get();
+    set({ savedSnapshot: snapshotKey(nodes, edges, shapes, documentContent) });
   },
 
   clearCanvas: () => {
@@ -460,13 +473,14 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   getProject: () => {
-    const { nodes, edges, shapes, projectName } = get();
+    const { nodes, edges, shapes, documentContent, projectName } = get();
     return {
       id: uuidv4(),
       name: projectName,
       nodes,
       edges,
       shapes,
+      documentContent,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

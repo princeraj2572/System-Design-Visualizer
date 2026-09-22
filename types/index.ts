@@ -134,12 +134,17 @@ export type ShapeNode = Node<ShapeData>;
 
 export type ToolId = 'select' | 'rectangle' | 'ellipse' | 'line' | 'arrow' | 'pencil' | 'text';
 
+/** How much of the main content area the notes document vs. the diagram
+ * canvas gets, matching Eraser.io's Document/Both/Canvas toggle. */
+export type ViewMode = 'document' | 'both' | 'canvas';
+
 export interface Project {
   id: string;
   name: string;
   nodes: ArchNode[];
   edges: ArchEdge[];
   shapes: ShapeNode[];
+  documentContent: string;
   createdAt: string;
   updatedAt: string;
 }
