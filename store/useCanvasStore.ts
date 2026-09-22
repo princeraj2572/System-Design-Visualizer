@@ -49,6 +49,7 @@ interface CanvasStore {
   addNode: (type: NodeType, position: { x: number; y: number }) => void;
   updateNodeData: (id: string, data: Partial<NodeData>) => void;
   deleteNode: (id: string) => void;
+  deleteEdge: (id: string) => void;
   duplicateNode: (id: string) => void;
   nudgeNode: (id: string, dx: number, dy: number) => void;
   copyNode: (id: string) => void;
@@ -180,6 +181,11 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       edges: state.edges.filter((e) => e.source !== id && e.target !== id),
       selectedNodeId: state.selectedNodeId === id ? null : state.selectedNodeId,
     }));
+  },
+
+  deleteEdge: (id) => {
+    get().snapshot();
+    set((state) => ({ edges: state.edges.filter((e) => e.id !== id) }));
   },
 
   duplicateNode: (id) => {
