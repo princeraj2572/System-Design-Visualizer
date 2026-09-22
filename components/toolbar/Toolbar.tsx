@@ -8,8 +8,11 @@ import {
   importFromJSON,
   saveProjectToLocalStorage,
   loadProjectsFromLocalStorage,
+  deleteProjectFromLocalStorage,
 } from '@/utils/export';
-import type { ValidationIssue } from '@/types';
+import type { Project, ValidationIssue } from '@/types';
+import { Modal, ConfirmDialog } from '@/components/common/Modal';
+import { Trash2 } from 'lucide-react';
 
 function Icon({ children }: { children: React.ReactNode }) {
   return (
@@ -78,20 +81,12 @@ export default function Toolbar() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
 
   const handleSave = useCallback(() => { const p = getProject(); saveProjectToLocalStorage(p); showToast(`"${p.name}" saved`); }, [getProject]);
-  const handleLoad = useCallback(() => {
-    const saved = loadProjectsFromLocalStorage();
-    if (!saved.length) { showToast('No saved projects found'); return; }
-    const names = saved.map((p, i) => `${i + 1}. ${p.name}`).join('\n');
-    const choice = window.prompt(`Saved projects:\n${names}\n\nEnter number to load:`);
-    if (!choice) return;
-    const idx = parseInt(choice, 10) - 1;
-    if (isNaN(idx) || idx < 0 || idx >= saved.length) { showToast('Invalid selection'); return; }
-    loadProject(saved[idx]); showToast(`Loaded "${saved[idx].name}"`);
-  }, [loadProject]);
   const handleExportJSON = useCallback(() => exportToJSON(getProject()), [getProject]);
   const handleExportPNG = useCallback(async () => { showToast('Exporting…'); await exportToPNG('architecture-canvas', projectName); }, [projectName]);
   const handleImport = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,7 +95,6 @@ export default function Toolbar() {
     catch { showToast('Import failed — invalid file'); }
     e.target.value = '';
   }, [loadProject]);
-  const handleClear = useCallback(() => { if (window.confirm('Clear canvas? This can be undone.')) clearCanvas(); }, [clearCanvas]);
 
   return (
     <header className="h-11 flex-shrink-0 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 flex items-center px-3 gap-0.5 relative z-20">
@@ -125,7 +119,7 @@ export default function Toolbar() {
       <Divider />
 
       <Btn onClick={handleSave} title="Save to browser storage"><SaveIcon/> Save</Btn>
-      <Btn onClick={handleLoad} title="Load saved project"><FolderIcon/> Load</Btn>
+      <Btn onClick={() => setShowLoadDialog(true)} title="Load saved project"><FolderIcon/> Load</Btn>
       <Btn onClick={handleExportJSON} title="Download as JSON"><CodeIcon/> JSON</Btn>
       <Btn onClick={handleExportPNG} title="Download as PNG"><ImageIcon/> PNG</Btn>
       <label className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium
@@ -138,7 +132,7 @@ export default function Toolbar() {
       <Divider />
 
       <Btn onClick={validate} title="Validate architecture"><ValidateIcon/> Validate</Btn>
-      <Btn onClick={handleClear} title="Clear canvas" variant="danger"><TrashIcon/> Clear</Btn>
+      <Btn onClick={() => setShowClearConfirm(true)} title="Clear canvas" variant="danger"><TrashIcon/> Clear</Btn>
 
       <div className="flex-1"/>
 
@@ -156,7 +150,77 @@ export default function Toolbar() {
       )}
 
       {showValidation && <ValidationPanel issues={validationIssues} onClose={dismissValidation}/>}
+
+      {showLoadDialog && (
+        <LoadDialog
+          onClose={() => setShowLoadDialog(false)}
+          onLoad={(p) => { loadProject(p); showToast(`Loaded "${p.name}"`); setShowLoadDialog(false); }}
+          onDeleted={(name) => showToast(`Deleted "${name}"`)}
+        />
+      )}
+
+      {showClearConfirm && (
+        <ConfirmDialog
+          title="Clear canvas?"
+          message="This removes every component and connection from the canvas. You can undo it with Ctrl+Z afterward."
+          confirmLabel="Clear"
+          danger
+          onConfirm={() => { clearCanvas(); setShowClearConfirm(false); showToast('Canvas cleared'); }}
+          onCancel={() => setShowClearConfirm(false)}
+        />
+      )}
     </header>
+  );
+}
+
+function LoadDialog({
+  onClose,
+  onLoad,
+  onDeleted,
+}: {
+  onClose: () => void;
+  onLoad: (project: Project) => void;
+  onDeleted: (name: string) => void;
+}) {
+  const [projects, setProjects] = useState<Project[]>(() => loadProjectsFromLocalStorage());
+
+  const handleDelete = (name: string) => {
+    deleteProjectFromLocalStorage(name);
+    setProjects((prev) => prev.filter((p) => p.name !== name));
+    onDeleted(name);
+  };
+
+  return (
+    <Modal onClose={onClose} widthClass="w-96">
+      <div className="px-5 pt-4 pb-3 border-b border-slate-100 dark:border-zinc-800">
+        <h2 className="text-[13px] font-semibold text-slate-800 dark:text-zinc-100">Load Project</h2>
+        <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-1">Saved in this browser&apos;s local storage.</p>
+      </div>
+      <div className="max-h-80 overflow-y-auto p-2">
+        {projects.length === 0 ? (
+          <p className="text-[11px] text-slate-400 dark:text-zinc-600 text-center py-6">No saved projects yet.</p>
+        ) : (
+          projects.map((p) => (
+            <div key={p.name} className="group flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
+              <button onClick={() => onLoad(p)} className="flex-1 min-w-0 text-left">
+                <p className="text-[12px] font-medium text-slate-700 dark:text-zinc-200 truncate">{p.name}</p>
+                <p className="text-[10px] text-slate-400 dark:text-zinc-500">
+                  {p.nodes.length} nodes · updated {new Date(p.updatedAt).toLocaleDateString()}
+                </p>
+              </button>
+              <button
+                onClick={() => handleDelete(p.name)}
+                title="Delete"
+                className="opacity-0 group-hover:opacity-100 flex-shrink-0 p-1.5 rounded-md text-slate-400 dark:text-zinc-500
+                  hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all"
+              >
+                <Trash2 size={13}/>
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </Modal>
   );
 }
 
