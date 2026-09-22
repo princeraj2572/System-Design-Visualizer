@@ -52,7 +52,7 @@ interface CanvasStore {
   duplicateNode: (id: string) => void;
   nudgeNode: (id: string, dx: number, dy: number) => void;
   copyNode: (id: string) => void;
-  pasteNode: () => void;
+  pasteNode: (position?: { x: number; y: number }) => void;
   autoLayout: () => void;
   setSelectedNode: (id: string | null) => void;
 
@@ -210,14 +210,14 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     if (node) set({ clipboard: { ...node, data: { ...node.data } } });
   },
 
-  pasteNode: () => {
+  pasteNode: (position) => {
     const { clipboard } = get();
     if (!clipboard) return;
     get().snapshot();
     const clone: ArchNode = {
       ...clipboard,
       id: uuidv4(),
-      position: { x: clipboard.position.x + 48, y: clipboard.position.y + 48 },
+      position: position ?? { x: clipboard.position.x + 48, y: clipboard.position.y + 48 },
       selected: false,
       data: { ...clipboard.data },
     };
