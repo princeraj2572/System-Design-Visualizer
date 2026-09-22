@@ -64,6 +64,11 @@ export function loadProjectsFromLocalStorage(): Project[] {
   return JSON.parse(localStorage.getItem('sysvis-projects') ?? '[]');
 }
 
+export function deleteProjectFromLocalStorage(name: string): void {
+  const saved = loadProjectsFromLocalStorage().filter((p) => p.name !== name);
+  localStorage.setItem('sysvis-projects', JSON.stringify(saved));
+}
+
 function slugify(str: string): string {
   return str.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 }

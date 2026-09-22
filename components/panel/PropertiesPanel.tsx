@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { NODE_CONFIG } from '@/components/nodes/nodeConfig';
@@ -19,14 +19,21 @@ const FIELDS: {
 ];
 
 export default function PropertiesPanel() {
-  const { nodes, selectedNodeId, updateNodeData, deleteNode } = useCanvasStore();
+  const { nodes, selectedNodeId, updateNodeData, deleteNode, snapshot } = useCanvasStore();
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
   const [form, setForm] = useState<Partial<NodeData>>({});
+  // Snapshot once per node-selection, not per keystroke, so undo reverts
+  // "everything typed while this node was open" as a single step.
+  const snapshotTakenFor = useRef<string | null>(null);
 
   useEffect(() => {
     if (selectedNode) setForm({ ...selectedNode.data });
     else setForm({});
-  }, [selectedNode]);
+    snapshotTakenFor.current = null;
+    // Re-syncs only when the selected node identity changes, not on every
+    // keystroke (updateNodeData replaces the node object on each edit).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedNode?.id]);
 
   if (!selectedNode) {
     return (
@@ -52,6 +59,10 @@ export default function PropertiesPanel() {
   const { Icon } = config;
 
   const handleChange = (field: FormField, value: string) => {
+    if (snapshotTakenFor.current !== selectedNode.id) {
+      snapshot();
+      snapshotTakenFor.current = selectedNode.id;
+    }
     setForm((prev) => ({ ...prev, [field]: value }));
     updateNodeData(selectedNode.id, { [field]: value });
   };
