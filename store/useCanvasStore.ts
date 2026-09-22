@@ -5,6 +5,7 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
   addEdge as rfAddEdge,
+  MarkerType,
 } from 'reactflow';
 import type { NodeChange, EdgeChange, Connection } from 'reactflow';
 import { v4 as uuidv4 } from 'uuid';
@@ -106,6 +107,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       isValid = allowedTargets.length === 0 || allowedTargets.includes(targetNode.data.nodeType);
     }
 
+    const stroke = isValid ? '#6366f1' : '#ef4444';
     set((state) => ({
       edges: rfAddEdge(
         {
@@ -114,10 +116,11 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
           animated: isValid,
           type: 'smoothstep',
           style: {
-            stroke: isValid ? '#6366f1' : '#ef4444',
+            stroke,
             strokeWidth: 1.5,
             strokeDasharray: isValid ? undefined : '5 3',
           },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: stroke },
           data: { isValid },
         },
         state.edges
