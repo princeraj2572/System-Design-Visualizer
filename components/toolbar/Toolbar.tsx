@@ -163,9 +163,8 @@ export default function Toolbar() {
           placeholder-slate-400 dark:placeholder-zinc-600 transition-colors"
       />
 
-      <Divider />
-
-      <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800">
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+        flex items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800">
         {(['document', 'both', 'canvas'] as const).map((mode) => (
           <button
             key={mode}
@@ -181,7 +180,7 @@ export default function Toolbar() {
         ))}
       </div>
 
-      <Divider />
+      <div className="flex-1"/>
 
       <Btn onClick={undo} disabled={history.length === 0} title="Undo (Ctrl+Z)"><UndoIcon/> Undo</Btn>
       <Btn onClick={redo} disabled={future.length === 0} title="Redo"><RedoIcon/> Redo</Btn>
@@ -209,7 +208,7 @@ export default function Toolbar() {
       <Btn onClick={validate} title="Validate architecture"><ValidateIcon/> Validate</Btn>
       <Btn onClick={() => setShowClearConfirm(true)} title="Clear canvas" variant="danger"><TrashIcon/> Clear</Btn>
 
-      <div className="flex-1"/>
+      <Divider />
 
       <button onClick={toggleTheme}
         className="flex items-center justify-center w-7 h-7 rounded-md text-slate-400 dark:text-zinc-500
