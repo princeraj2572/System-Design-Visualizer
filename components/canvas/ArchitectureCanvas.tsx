@@ -16,11 +16,12 @@ import 'reactflow/dist/style.css';
 import { Copy, Trash2, ClipboardPaste, LayoutGrid } from 'lucide-react';
 import type { NodeType, ShapeNode as ShapeNodeType, ToolId } from '@/types';
 import { useCanvasStore } from '@/store/useCanvasStore';
-import CustomNode from '@/components/nodes/CustomNode';
+import CustomNode, { NODE_WIDTH, NODE_HEIGHT } from '@/components/nodes/CustomNode';
 import ShapeNode from '@/components/nodes/ShapeNode';
 import DrawToolbar from '@/components/canvas/DrawToolbar';
 import { NODE_CONFIG } from '@/components/nodes/nodeConfig';
 import { ContextMenu, type ContextMenuItem } from '@/components/common/ContextMenu';
+import { computeSnap, type SnapBox } from '@/components/canvas/snapping';
 
 const MIN_DRAW_SIZE = 4;
 
@@ -49,6 +50,8 @@ export default function ArchitectureCanvas() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [menu, setMenu] = useState<CanvasMenu | null>(null);
   const [zoomPct, setZoomPct] = useState(100);
+  const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
+  const [guides, setGuides] = useState<{ x: number | null; y: number | null }>({ x: null, y: null });
   const [drawPreview, setDrawPreview] = useState<DrawState | null>(null);
   const drawStateRef = useRef<DrawState | null>(null);
   // useMemo prevents a new object reference on every Fast Refresh / hot reload
@@ -227,9 +230,28 @@ export default function ArchitectureCanvas() {
   const handleCombinedNodesChange = useCallback((changes: NodeChange[]) => {
     const nodeChanges = changes.filter((c) => 'id' in c && nodeAndShapeIds.nodeIds.has(c.id));
     const shapeChanges = changes.filter((c) => 'id' in c && nodeAndShapeIds.shapeIds.has(c.id));
+
+    let sawDrag = false;
+    for (const change of nodeChanges) {
+      if (change.type !== 'position' || !change.dragging || !change.position) continue;
+      sawDrag = true;
+      const others: SnapBox[] = nodes
+        .filter((n) => n.id !== change.id)
+        .map((n) => ({ left: n.position.x, top: n.position.y, width: NODE_WIDTH, height: NODE_HEIGHT }));
+      const snapped = computeSnap(
+        { left: change.position.x, top: change.position.y, width: NODE_WIDTH, height: NODE_HEIGHT },
+        others
+      );
+      change.position = { x: snapped.x, y: snapped.y };
+      setGuides({ x: snapped.guideX, y: snapped.guideY });
+    }
+    if (!sawDrag && (guides.x !== null || guides.y !== null)) {
+      setGuides({ x: null, y: null });
+    }
+
     if (nodeChanges.length) onNodesChange(nodeChanges);
     if (shapeChanges.length) onShapesChange(shapeChanges);
-  }, [nodeAndShapeIds, onNodesChange, onShapesChange]);
+  }, [nodeAndShapeIds, onNodesChange, onShapesChange, nodes, guides]);
 
   // Highlight the chain connected to the hovered node; dim everything else.
   const connectedIds = useMemo(() => {
@@ -262,8 +284,13 @@ export default function ArchitectureCanvas() {
     }));
   }, [edges, hoveredId]);
 
-  const onMove: OnMove = useCallback((_, viewport) => {
-    setZoomPct(Math.round(viewport.zoom * 100));
+  const onMove: OnMove = useCallback((_, vp) => {
+    setZoomPct(Math.round(vp.zoom * 100));
+    setViewport(vp);
+  }, []);
+
+  const onNodeDragStop = useCallback(() => {
+    setGuides({ x: null, y: null });
   }, []);
 
   const onNodeContextMenu = useCallback((event: ReactMouseEvent, node: Node) => {
@@ -354,6 +381,7 @@ export default function ArchitectureCanvas() {
         onMouseDown={onCanvasMouseDown}
         onPaneClick={() => { setSelectedNode(null); setSelectedShape(null); setMenu(null); }}
         onNodeDragStart={() => snapshot()}
+        onNodeDragStop={onNodeDragStop}
         onNodeMouseEnter={(_, node) => setHoveredId(node.id)}
         onNodeMouseLeave={() => setHoveredId(null)}
         onNodeContextMenu={onNodeContextMenu}
@@ -402,6 +430,19 @@ export default function ArchitectureCanvas() {
           maskColor={isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.7)'}
         />
       </ReactFlow>
+
+      {guides.x !== null && (
+        <div
+          className="absolute top-0 bottom-0 pointer-events-none z-10"
+          style={{ left: guides.x * viewport.zoom + viewport.x, width: 1, background: '#6366f1', boxShadow: '0 0 0 0.5px #6366f1' }}
+        />
+      )}
+      {guides.y !== null && (
+        <div
+          className="absolute left-0 right-0 pointer-events-none z-10"
+          style={{ top: guides.y * viewport.zoom + viewport.y, height: 1, background: '#6366f1', boxShadow: '0 0 0 0.5px #6366f1' }}
+        />
+      )}
 
       <DrawToolbar/>
 
