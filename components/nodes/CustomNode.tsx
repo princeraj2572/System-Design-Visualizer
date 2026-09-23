@@ -9,8 +9,8 @@ import { NODE_CONFIG } from './nodeConfig';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { SketchyRect } from './SketchyRect';
 
-const NODE_WIDTH = 160;
-const NODE_HEIGHT = 116;
+export const NODE_WIDTH = 160;
+export const NODE_HEIGHT = 116;
 
 function CustomNode({ id, data, selected }: NodeProps<NodeData>) {
   const config = NODE_CONFIG[data.nodeType];
@@ -69,7 +69,7 @@ function CustomNode({ id, data, selected }: NodeProps<NodeData>) {
       aria-pressed={selected}
       aria-label={`${data.name || config.defaultName} (${config.label})`}
       title={data.description || config.description}
-      className="relative flex flex-col cursor-pointer select-none
+      className="node-appear relative flex flex-col cursor-pointer select-none
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
         focus-visible:ring-indigo-400 dark:focus-visible:ring-offset-zinc-950 rounded-2xl"
       style={{ width: NODE_WIDTH, height: NODE_HEIGHT }}
