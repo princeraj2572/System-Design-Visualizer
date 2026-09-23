@@ -40,13 +40,20 @@
   animation-duration: 0.6s;
 }
 
-/* Node entrance animation — spring scale-in on drop */
+/* Node entrance animation — spring scale-in on drop.
+   Applied to an inner wrapper (.node-appear), never to .react-flow__node
+   itself, because React Flow positions nodes via an inline `transform:
+   translate(x,y)` on that element — a CSS animation targeting the same
+   property there would fully override the position transform (not
+   compose with it) for the animation's duration. */
 @keyframes nodeAppear {
   from { opacity: 0; transform: scale(0.7) translateY(6px); }
   to   { opacity: 1; transform: scale(1)   translateY(0); }
 }
-.react-flow__node {
+.node-appear {
   animation: nodeAppear 0.22s cubic-bezier(0.34, 1.5, 0.64, 1);
+}
+.react-flow__node {
   transition: filter 0.15s ease;
 }
 .react-flow__node:hover {

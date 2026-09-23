@@ -98,7 +98,7 @@ function ShapeNode({ id, data, selected }: NodeProps<ShapeData>) {
   return (
     <div
       onClick={handleClick}
-      className="relative"
+      className="node-appear relative"
       style={{ width, height, cursor: 'move' }}
     >
       {selected && (
