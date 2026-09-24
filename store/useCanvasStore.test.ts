@@ -145,6 +145,38 @@ describe('duplicateFrame', () => {
   });
 });
 
+describe('pasteNode with frames', () => {
+  function copyANodeInsideAFrame() {
+    const frameId = useCanvasStore.getState().addFrame({ position: { x: 100, y: 100 }, width: 300, height: 300, title: 'F', color: '#000' });
+    useCanvasStore.getState().addNode('database', { x: 0, y: 0 });
+    const nodeId = useCanvasStore.getState().nodes[0].id;
+    useCanvasStore.getState().reparentNode(nodeId, frameId, { x: 20, y: 20 });
+    useCanvasStore.getState().copyNode(nodeId);
+    return { frameId, nodeId };
+  }
+
+  it('pastes at an explicit position as a fresh top-level node, not into the copied node\'s old frame', () => {
+    copyANodeInsideAFrame();
+
+    useCanvasStore.getState().pasteNode({ x: 800, y: 800 });
+
+    const pasted = useCanvasStore.getState().nodes[useCanvasStore.getState().nodes.length - 1];
+    expect(pasted.parentNode).toBeUndefined();
+    expect(pasted.extent).toBeUndefined();
+    expect(pasted.position).toEqual({ x: 800, y: 800 });
+  });
+
+  it('keeps the frame membership for an offset paste (Ctrl+V) with no explicit position', () => {
+    const { frameId } = copyANodeInsideAFrame();
+
+    useCanvasStore.getState().pasteNode();
+
+    const pasted = useCanvasStore.getState().nodes[useCanvasStore.getState().nodes.length - 1];
+    expect(pasted.parentNode).toBe(frameId);
+    expect(pasted.position).toEqual({ x: 68, y: 68 });
+  });
+});
+
 describe('undo/redo with frames', () => {
   it('undoes and redoes frame creation', () => {
     const id = useCanvasStore.getState().addFrame({ position: { x: 0, y: 0 }, width: 100, height: 100, title: 'A', color: '#000' });
