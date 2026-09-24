@@ -28,6 +28,24 @@ together with, and visually organized by. Built on React Flow's native
   organizational, like Excalidraw/FigJam frames.
 - No auto-fit-to-contents resize action.
 
+## Decision log
+
+Decisions made during brainstorming, in the order they were settled, with
+the alternatives that were on the table and why each was picked.
+
+| # | Question | Decision | Alternatives considered | Rationale |
+|---|----------|----------|--------------------------|-----------|
+| 1 | Scope for this brainstorm | Grouping/Containers only; templates, edge labels, multi-select, and shareable links stay a backlog for separate brainstorms | Brainstorm all 5 proposed features together as one initiative | Each is an independent subsystem; bundling them would force premature decomposition instead of a focused design |
+| 2 | How does a node become "inside" a frame? | Auto-detect on drop (overlap/center-point) | Explicit action only (e.g. right-click "Add to frame") | Matches Figma/FigJam frame behavior the feature is modeled on; explicit-only adds friction for the common case |
+| 3 | How are frames created? | Dedicated Frame tool in the draw toolbar (drag-to-size) | Palette drag; both palette and tool | Frames are structural/canvas-native like the existing rectangle/ellipse draw tools, not architecture components — palette entry would blur that line |
+| 4 | What does a frame carry besides its box? | Title + color from a small preset palette | Title + preset "kind" dropdown (VPC/Subnet/Region/AZ/Cluster with pre-set styling); title only, no color | No semantic meaning wanted (purely organizational, like Excalidraw/FigJam); preset "kind" adds a data-model/UI surface with no behavior attached to it |
+| 5 | Can frames nest? | Yes, arbitrary depth | Single level only | Directly matches the VPC → subnet use case; React Flow's `parentNode` mechanism supports arbitrary nesting natively, so it isn't much extra work |
+| 6 | What happens to children when a frame is deleted? | Ungroup — frame disappears, children remain, unparented | Cascade-delete children | Matches Excalidraw/FigJam frame semantics; deleting a container shouldn't destroy unrelated work by surprise |
+| 7 | Can frames be resized, and do they auto-fit? | Manual resize only (drag handles via React Flow's `NodeResizer`) | Manual + a "fit to contents" context-menu action | Predictable, matches the reference tools; auto-fit is an easy fast-follow if ever needed, not required for v1 |
+| 8 | Does Mermaid export represent frames? | Out of scope for v1 — export stays a flat flowchart | Render frames as `subgraph` blocks | Frames are canvas-side/organizational for now; subgraph export is a self-contained fast-follow that doesn't block the core feature |
+| 9 | How should a frame's title/color be edited? | Inline on canvas (double-click title to rename; color swatches shown on selection) | Right-side Properties panel, consistent with architecture nodes | Keeps frames self-contained with no Properties panel changes needed; matches Excalidraw/FigJam's inline editing model |
+| 10 | Containment implementation strategy | React Flow's native `parentNode`/`extent: 'parent'` subflow support | Custom containment metadata (e.g. a `parentFrameId` field) with hand-rolled move-together/clipping/resize logic | RF already implements move-together, clipping, and absolute-position tracking correctly; reimplementing it duplicates library functionality for no added capability and more bug surface. Accepted trade-off: code that compares node positions across nodes (the snapping logic) must switch from `position` to RF's auto-maintained `positionAbsolute`, since a child's `position` becomes parent-relative once nested. |
+
 ## Approach
 
 React Flow 11 (already a dependency) has first-class subflow support: a
