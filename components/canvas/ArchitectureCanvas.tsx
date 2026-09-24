@@ -14,7 +14,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Copy, Trash2, ClipboardPaste, LayoutGrid } from 'lucide-react';
-import type { NodeType, ShapeNode as ShapeNodeType, ToolId } from '@/types';
+import type { NodeType, ShapeNode as ShapeNodeType, FrameNode as FrameNodeType, ToolId } from '@/types';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import CustomNode, { NODE_WIDTH, NODE_HEIGHT } from '@/components/nodes/CustomNode';
 import ShapeNode from '@/components/nodes/ShapeNode';
@@ -262,17 +262,42 @@ export default function ArchitectureCanvas() {
     frameRemovals.forEach((c) => deleteFrame((c as { id: string }).id));
 
     let sawDrag = false;
-    for (const change of nodeChanges) {
-      if (change.type !== 'position' || !change.dragging || !change.position) continue;
+    const positionableChanges = [...nodeChanges, ...frameChanges];
+    for (const change of positionableChanges) {
+      if (change.type !== 'position' || !change.dragging || !change.position || !rfInstance) continue;
       sawDrag = true;
-      const others: SnapBox[] = nodes
-        .filter((n) => n.id !== change.id)
-        .map((n) => ({ left: n.position.x, top: n.position.y, width: NODE_WIDTH, height: NODE_HEIGHT }));
-      const snapped = computeSnap(
-        { left: change.position.x, top: change.position.y, width: NODE_WIDTH, height: NODE_HEIGHT },
-        others
-      );
-      change.position = { x: snapped.x, y: snapped.y };
+
+      const draggedRf = rfInstance.getNode(change.id);
+      const isDraggedFrame = nodeAndShapeIds.frameIds.has(change.id);
+      const draggedSize = isDraggedFrame
+        ? {
+            width: frames.find((f) => f.id === change.id)?.data.width ?? NODE_WIDTH,
+            height: frames.find((f) => f.id === change.id)?.data.height ?? NODE_HEIGHT,
+          }
+        : { width: NODE_WIDTH, height: NODE_HEIGHT };
+      const parentId = draggedRf?.parentNode;
+      const parentRf = parentId ? rfInstance.getNode(parentId) : undefined;
+      const parentAbs = parentRf ? (parentRf.positionAbsolute ?? parentRf.position) : { x: 0, y: 0 };
+      const draggedAbsBox: SnapBox = {
+        left: parentAbs.x + change.position.x,
+        top: parentAbs.y + change.position.y,
+        width: draggedSize.width,
+        height: draggedSize.height,
+      };
+
+      const others: SnapBox[] = [...nodes, ...frames]
+        .filter((item) => item.id !== change.id)
+        .map((item) => {
+          const rf = rfInstance.getNode(item.id);
+          const abs = rf?.positionAbsolute ?? item.position;
+          const size = nodeAndShapeIds.frameIds.has(item.id)
+            ? (item as FrameNodeType).data
+            : { width: NODE_WIDTH, height: NODE_HEIGHT };
+          return { left: abs.x, top: abs.y, width: size.width, height: size.height };
+        });
+
+      const snapped = computeSnap(draggedAbsBox, others);
+      change.position = { x: snapped.x - parentAbs.x, y: snapped.y - parentAbs.y };
       setGuides({ x: snapped.guideX, y: snapped.guideY });
     }
     if (!sawDrag && (guides.x !== null || guides.y !== null)) {
@@ -282,7 +307,7 @@ export default function ArchitectureCanvas() {
     if (nodeChanges.length) onNodesChange(nodeChanges);
     if (shapeChanges.length) onShapesChange(shapeChanges);
     if (frameChanges.length) onFramesChange(frameChanges);
-  }, [nodeAndShapeIds, onNodesChange, onShapesChange, onFramesChange, deleteFrame, nodes, guides]);
+  }, [nodeAndShapeIds, onNodesChange, onShapesChange, onFramesChange, deleteFrame, nodes, frames, guides, rfInstance]);
 
   // Highlight the chain connected to the hovered node; dim everything else.
   const connectedIds = useMemo(() => {
