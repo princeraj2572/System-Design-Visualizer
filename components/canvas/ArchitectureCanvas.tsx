@@ -23,6 +23,8 @@ import DrawToolbar from '@/components/canvas/DrawToolbar';
 import { NODE_CONFIG } from '@/components/nodes/nodeConfig';
 import { ContextMenu, type ContextMenuItem } from '@/components/common/ContextMenu';
 import { computeSnap, type SnapBox } from '@/components/canvas/snapping';
+import { findContainingFrame, toRelative, type FrameBox, type DraggedBox } from '@/components/canvas/reparenting';
+import { FRAME_MIN_WIDTH, FRAME_MIN_HEIGHT } from '@/components/nodes/FrameNode';
 
 const MIN_DRAW_SIZE = 4;
 const DEFAULT_FRAME_WIDTH = 240;
@@ -91,6 +93,7 @@ export default function ArchitectureCanvas() {
     addFrame,
     deleteFrame,
     duplicateFrame,
+    reparentNode,
   } = useCanvasStore();
 
   const onDrop = useCallback(
@@ -317,9 +320,42 @@ export default function ArchitectureCanvas() {
     setViewport(vp);
   }, []);
 
-  const onNodeDragStop = useCallback(() => {
+  const onNodeDragStop = useCallback((_event: ReactMouseEvent, node: Node) => {
     setGuides({ x: null, y: null });
-  }, []);
+    if (!rfInstance) return;
+    const isFrame = nodeAndShapeIds.frameIds.has(node.id);
+    if (!isFrame && !nodeAndShapeIds.nodeIds.has(node.id)) return; // shapes don't participate in framing
+
+    const rfNode = rfInstance.getNode(node.id);
+    if (!rfNode) return;
+
+    const size = isFrame
+      ? {
+          width: frames.find((f) => f.id === node.id)?.data.width ?? FRAME_MIN_WIDTH,
+          height: frames.find((f) => f.id === node.id)?.data.height ?? FRAME_MIN_HEIGHT,
+        }
+      : { width: NODE_WIDTH, height: NODE_HEIGHT };
+    const abs = rfNode.positionAbsolute ?? rfNode.position;
+    const dragged: DraggedBox = { id: node.id, left: abs.x, top: abs.y, width: size.width, height: size.height };
+
+    const frameBoxes: FrameBox[] = frames.map((f) => {
+      const fRfNode = rfInstance.getNode(f.id);
+      const fAbs = fRfNode?.positionAbsolute ?? f.position;
+      return { id: f.id, parentId: f.parentNode ?? null, left: fAbs.x, top: fAbs.y, width: f.data.width, height: f.data.height };
+    });
+
+    const targetId = findContainingFrame(dragged, frameBoxes);
+    const currentParentId = rfNode.parentNode ?? null;
+    if (targetId === currentParentId) return;
+
+    if (targetId === null) {
+      reparentNode(node.id, null, { x: abs.x, y: abs.y });
+      return;
+    }
+    const targetFrame = frameBoxes.find((f) => f.id === targetId)!;
+    const relative = toRelative({ x: abs.x, y: abs.y }, { x: targetFrame.left, y: targetFrame.top });
+    reparentNode(node.id, targetId, relative);
+  }, [rfInstance, nodeAndShapeIds, frames, reparentNode]);
 
   const onNodeContextMenu = useCallback((event: ReactMouseEvent, node: Node) => {
     event.preventDefault();
