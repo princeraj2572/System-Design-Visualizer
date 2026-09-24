@@ -58,8 +58,14 @@ function FrameNode({ id, data, selected }: NodeProps<FrameData>) {
         isVisible={selected}
         minWidth={FRAME_MIN_WIDTH}
         minHeight={FRAME_MIN_HEIGHT}
+        // Snapshot BEFORE the resize starts: NodeResizer streams live dimension
+        // changes through onFramesChange during the drag, so by onResizeEnd the
+        // React Flow-managed style/width/height are already at the new size
+        // while data.width/height (what this component renders from) are still
+        // at the old one — undo would restore that mismatched half-state. Same
+        // pattern as onNodeDragStart={() => snapshot()} for node drags.
+        onResizeStart={() => snapshot()}
         onResizeEnd={(_, params) => {
-          snapshot();
           updateFrameData(id, { width: params.width, height: params.height });
         }}
       />
