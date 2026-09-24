@@ -1,5 +1,40 @@
 import { describe, it, expect } from 'vitest';
-import { findContainingFrame, isDescendant, toRelative, absolutePosition, type FrameBox } from './reparenting';
+import { findContainingFrame, isCascadedFrameRemoval, isDescendant, toRelative, absolutePosition, type FrameBox } from './reparenting';
+
+describe('isCascadedFrameRemoval', () => {
+  const removed = new Set(['frame-1']);
+
+  it('drops an unselected child of a frame being removed (Delete on a frame keeps its node)', () => {
+    expect(isCascadedFrameRemoval({ parentNode: 'frame-1', selected: false }, removed)).toBe(true);
+  });
+
+  it('keeps a child the user selected themselves', () => {
+    expect(isCascadedFrameRemoval({ parentNode: 'frame-1', selected: true }, removed)).toBe(false);
+  });
+
+  it('keeps a top-level item with no parent', () => {
+    expect(isCascadedFrameRemoval({ selected: false }, removed)).toBe(false);
+  });
+
+  it('keeps a child whose parent frame is not being removed', () => {
+    expect(isCascadedFrameRemoval({ parentNode: 'frame-2', selected: false }, removed)).toBe(false);
+  });
+
+  it('keeps everything when no frame is being removed', () => {
+    expect(isCascadedFrameRemoval({ parentNode: 'frame-1' }, new Set())).toBe(false);
+  });
+
+  it('returns false for an unknown item', () => {
+    expect(isCascadedFrameRemoval(undefined, removed)).toBe(false);
+  });
+
+  it('drops a nested frame cascaded from its removed outer frame', () => {
+    expect(isCascadedFrameRemoval({ parentNode: 'frame-1', selected: false }, removed)).toBe(true);
+    // ...while the node inside that nested frame is cascaded too, because React
+    // Flow adds the nested frame to the removal set as well.
+    expect(isCascadedFrameRemoval({ parentNode: 'frame-2' }, new Set(['frame-1', 'frame-2']))).toBe(true);
+  });
+});
 
 describe('isDescendant', () => {
   const frames = [
