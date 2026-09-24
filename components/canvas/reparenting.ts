@@ -15,6 +15,35 @@ export function isDescendant(frameId: string, ancestorId: string, frames: Parent
   return false;
 }
 
+/** The minimum a node/frame must expose to classify a React Flow `remove`
+ * change as user-requested or cascaded from a deleted ancestor frame. */
+export interface RemovalCandidate {
+  parentNode?: string;
+  /** True when the user themselves selected this item (so its removal is
+   * genuinely user-initiated, not a side effect of its parent's removal). */
+  selected?: boolean;
+}
+
+/**
+ * React Flow's `deleteElements` (the Delete-key path) emits a `remove` change
+ * not just for the selected node but for every descendant of it too. Frames are
+ * meant to UNGROUP their children on delete, never take them down with them, so
+ * those cascaded child removals have to be discarded before they reach
+ * `applyNodeChanges`.
+ *
+ * Returns true when `item`'s removal was cascaded from one of
+ * `removedFrameIds` — i.e. its parent is a frame being removed and the item was
+ * not itself selected by the user.
+ */
+export function isCascadedFrameRemoval(
+  item: RemovalCandidate | undefined,
+  removedFrameIds: ReadonlySet<string>
+): boolean {
+  if (!item || !item.parentNode) return false;
+  if (item.selected) return false;
+  return removedFrameIds.has(item.parentNode);
+}
+
 /** A frame's bounds, in ABSOLUTE canvas coordinates (e.g. React Flow's
  * `positionAbsolute`, not a nested frame's parent-relative `position`). */
 export interface FrameBox extends ParentLink {

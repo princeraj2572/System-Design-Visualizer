@@ -18,13 +18,19 @@ import type { NodeType, ShapeNode as ShapeNodeType, FrameNode as FrameNodeType, 
 import { useCanvasStore } from '@/store/useCanvasStore';
 import CustomNode, { NODE_WIDTH, NODE_HEIGHT } from '@/components/nodes/CustomNode';
 import ShapeNode from '@/components/nodes/ShapeNode';
-import FrameNode, { FRAME_COLOR_PRESETS } from '@/components/nodes/FrameNode';
+import FrameNode, { FRAME_COLOR_PRESETS, FRAME_MIN_WIDTH, FRAME_MIN_HEIGHT } from '@/components/nodes/FrameNode';
 import DrawToolbar from '@/components/canvas/DrawToolbar';
 import { NODE_CONFIG } from '@/components/nodes/nodeConfig';
 import { ContextMenu, type ContextMenuItem } from '@/components/common/ContextMenu';
 import { computeSnap, type SnapBox } from '@/components/canvas/snapping';
-import { findContainingFrame, toRelative, type FrameBox, type DraggedBox } from '@/components/canvas/reparenting';
-import { FRAME_MIN_WIDTH, FRAME_MIN_HEIGHT } from '@/components/nodes/FrameNode';
+import {
+  findContainingFrame,
+  isCascadedFrameRemoval,
+  toRelative,
+  type FrameBox,
+  type DraggedBox,
+  type RemovalCandidate,
+} from '@/components/canvas/reparenting';
 
 const MIN_DRAW_SIZE = 4;
 const DEFAULT_FRAME_WIDTH = 240;
@@ -74,6 +80,7 @@ export default function ArchitectureCanvas() {
     onFramesChange,
     onConnect,
     addNode,
+    selectedNodeId,
     setSelectedNode,
     snapshot,
     theme,
@@ -255,10 +262,34 @@ export default function ArchitectureCanvas() {
   }, [nodes, shapes, frames]);
 
   const handleCombinedNodesChange = useCallback((changes: NodeChange[]) => {
-    const nodeChanges = changes.filter((c) => 'id' in c && nodeAndShapeIds.nodeIds.has(c.id));
+    const nodeChangesAll = changes.filter((c) => 'id' in c && nodeAndShapeIds.nodeIds.has(c.id));
     const shapeChanges = changes.filter((c) => 'id' in c && nodeAndShapeIds.shapeIds.has(c.id));
     const frameChangesAll = changes.filter((c) => 'id' in c && nodeAndShapeIds.frameIds.has(c.id));
-    const frameRemovals = frameChangesAll.filter((c) => c.type === 'remove');
+
+    // React Flow's delete-key path (`deleteElements`) cascades a `remove` change
+    // to every descendant of a removed node, so deleting a frame also emits
+    // removals for the nodes/frames inside it. Frames must UNGROUP their
+    // children instead (that's what `deleteFrame` does), so drop those cascaded
+    // removals — they are the ones whose parent is a frame being removed and
+    // which the user did not select themselves.
+    const removedFrameIds = new Set(
+      frameChangesAll.filter((c) => c.type === 'remove').map((c) => (c as { id: string }).id)
+    );
+    const isCascadedRemoval = (change: NodeChange) => {
+      if (change.type !== 'remove' || removedFrameIds.size === 0) return false;
+      const id = change.id;
+      const node = nodes.find((n) => n.id === id);
+      const frame = node ? undefined : frames.find((f) => f.id === id);
+      const item: RemovalCandidate | undefined = node
+        ? { parentNode: node.parentNode, selected: !!node.selected || selectedNodeId === id }
+        : frame
+          ? { parentNode: frame.parentNode, selected: !!frame.selected || selectedFrameId === id }
+          : undefined;
+      return isCascadedFrameRemoval(item, removedFrameIds);
+    };
+
+    const nodeChanges = nodeChangesAll.filter((c) => !isCascadedRemoval(c));
+    const frameRemovals = frameChangesAll.filter((c) => c.type === 'remove' && !isCascadedRemoval(c));
     const frameChanges = frameChangesAll.filter((c) => c.type !== 'remove');
     frameRemovals.forEach((c) => deleteFrame((c as { id: string }).id));
 
@@ -308,7 +339,7 @@ export default function ArchitectureCanvas() {
     if (nodeChanges.length) onNodesChange(nodeChanges);
     if (shapeChanges.length) onShapesChange(shapeChanges);
     if (frameChanges.length) onFramesChange(frameChanges);
-  }, [nodeAndShapeIds, onNodesChange, onShapesChange, onFramesChange, deleteFrame, nodes, frames, guides, rfInstance]);
+  }, [nodeAndShapeIds, onNodesChange, onShapesChange, onFramesChange, deleteFrame, nodes, frames, guides, rfInstance, selectedNodeId, selectedFrameId]);
 
   // Highlight the chain connected to the hovered node; dim everything else.
   const connectedIds = useMemo(() => {
