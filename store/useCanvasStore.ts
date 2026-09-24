@@ -19,9 +19,12 @@ import type {
   ShapeNode,
   ShapeData,
   ShapeKind,
+  FrameNode,
+  FrameData,
   ToolId,
   ViewMode,
 } from '@/types';
+import { absolutePosition } from '@/components/canvas/reparenting';
 import { NODE_CONFIG } from '@/components/nodes/nodeConfig';
 
 const MAX_HISTORY = 50;
@@ -30,6 +33,7 @@ interface HistoryEntry {
   nodes: ArchNode[];
   edges: ArchEdge[];
   shapes: ShapeNode[];
+  frames: FrameNode[];
 }
 
 interface CanvasStore {
@@ -38,6 +42,8 @@ interface CanvasStore {
   shapes: ShapeNode[];
   selectedNodeId: string | null;
   selectedShapeId: string | null;
+  frames: FrameNode[];
+  selectedFrameId: string | null;
   activeTool: ToolId;
   theme: 'light' | 'dark';
   history: HistoryEntry[];
@@ -63,6 +69,22 @@ interface CanvasStore {
   // Shape actions
   setActiveTool: (tool: ToolId) => void;
   setSelectedShape: (id: string | null) => void;
+
+  // Frame actions
+  setSelectedFrame: (id: string | null) => void;
+  addFrame: (frame: {
+    position: { x: number; y: number };
+    width: number;
+    height: number;
+    title: string;
+    color: string;
+  }) => string;
+  updateFrameData: (id: string, data: Partial<FrameData>) => void;
+  deleteFrame: (id: string) => void;
+  duplicateFrame: (id: string) => void;
+  reparentNode: (id: string, parentId: string | null, position: { x: number; y: number }) => void;
+  onFramesChange: (changes: NodeChange[]) => void;
+
   addShape: (shape: {
     kind: ShapeKind;
     position: { x: number; y: number };
@@ -109,8 +131,8 @@ interface CanvasStore {
   dismissValidation: () => void;
 }
 
-function snapshotKey(nodes: ArchNode[], edges: ArchEdge[], shapes: ShapeNode[], documentContent: string): string {
-  return JSON.stringify({ nodes, edges, shapes, documentContent });
+function snapshotKey(nodes: ArchNode[], edges: ArchEdge[], shapes: ShapeNode[], frames: FrameNode[], documentContent: string): string {
+  return JSON.stringify({ nodes, edges, shapes, frames, documentContent });
 }
 
 function deepClone<T>(val: T): T {
@@ -121,8 +143,10 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   nodes: [],
   edges: [],
   shapes: [],
+  frames: [],
   selectedNodeId: null,
   selectedShapeId: null,
+  selectedFrameId: null,
   activeTool: 'select',
   theme: 'dark',
   history: [],
@@ -134,7 +158,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   recentTypes: [],
   documentContent: '',
   viewMode: 'canvas',
-  savedSnapshot: snapshotKey([], [], [], ''),
+  savedSnapshot: snapshotKey([], [], [], [], ''),
 
   setDocumentContent: (text) => set({ documentContent: text }),
   setViewMode: (mode) => set({ viewMode: mode }),
@@ -160,9 +184,19 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     }));
   },
 
-  setActiveTool: (tool) => set({ activeTool: tool, selectedShapeId: null, selectedNodeId: null }),
+  setActiveTool: (tool) => set({ activeTool: tool, selectedShapeId: null, selectedNodeId: null, selectedFrameId: null }),
 
-  setSelectedShape: (id) => set({ selectedShapeId: id, selectedNodeId: id ? null : get().selectedNodeId }),
+  setSelectedShape: (id) => set({
+    selectedShapeId: id,
+    selectedNodeId: id ? null : get().selectedNodeId,
+    selectedFrameId: id ? null : get().selectedFrameId,
+  }),
+
+  setSelectedFrame: (id) => set({
+    selectedFrameId: id,
+    selectedNodeId: id ? null : get().selectedNodeId,
+    selectedShapeId: id ? null : get().selectedShapeId,
+  }),
 
   addShape: ({ kind, position, width, height, stroke, fill, text, points }) => {
     get().snapshot();
@@ -189,6 +223,86 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     set((state) => ({
       shapes: state.shapes.filter((s) => s.id !== id),
       selectedShapeId: state.selectedShapeId === id ? null : state.selectedShapeId,
+    }));
+  },
+
+  addFrame: ({ position, width, height, title, color }) => {
+    get().snapshot();
+    const id = uuidv4();
+    const frame: FrameNode = {
+      id,
+      type: 'frame',
+      position,
+      data: { title, color, width, height },
+    };
+    set((state) => ({ frames: [...state.frames, frame] }));
+    return id;
+  },
+
+  updateFrameData: (id, data) => {
+    set((state) => ({
+      frames: state.frames.map((f) => (f.id === id ? { ...f, data: { ...f.data, ...data } } : f)),
+    }));
+  },
+
+  deleteFrame: (id) => {
+    get().snapshot();
+    set((state) => {
+      const frameLinks = state.frames.map((f) => ({ id: f.id, parentId: f.parentNode ?? null, position: f.position }));
+      const ungroupPosition = (child: { position: { x: number; y: number }; parentNode?: string }) =>
+        absolutePosition(child.position, child.parentNode ?? null, frameLinks);
+
+      return {
+        nodes: state.nodes.map((n) =>
+          n.parentNode === id
+            ? { ...n, position: ungroupPosition(n), parentNode: undefined, extent: undefined }
+            : n
+        ),
+        frames: state.frames
+          .filter((f) => f.id !== id)
+          .map((f) =>
+            f.parentNode === id
+              ? { ...f, position: ungroupPosition(f), parentNode: undefined, extent: undefined }
+              : f
+          ),
+        selectedFrameId: state.selectedFrameId === id ? null : state.selectedFrameId,
+      };
+    });
+  },
+
+  duplicateFrame: (id) => {
+    const { frames } = get();
+    const source = frames.find((f) => f.id === id);
+    if (!source) return;
+    get().snapshot();
+    const clone: FrameNode = {
+      ...source,
+      id: uuidv4(),
+      position: { x: source.position.x + 32, y: source.position.y + 32 },
+      selected: false,
+      data: { ...source.data },
+    };
+    set((state) => ({ frames: [...state.frames, clone], selectedFrameId: clone.id }));
+  },
+
+  reparentNode: (id, parentId, position) => {
+    get().snapshot();
+    set((state) => {
+      const patch = {
+        position,
+        parentNode: parentId ?? undefined,
+        extent: (parentId ? 'parent' : undefined) as 'parent' | undefined,
+      };
+      if (state.nodes.some((n) => n.id === id)) {
+        return { nodes: state.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)) };
+      }
+      return { frames: state.frames.map((f) => (f.id === id ? { ...f, ...patch } : f)) };
+    });
+  },
+
+  onFramesChange: (changes) => {
+    set((state) => ({
+      frames: applyNodeChanges(changes, state.frames) as FrameNode[],
     }));
   },
 
@@ -366,55 +480,64 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   setSelectedNode: (id) => {
-    set({ selectedNodeId: id, selectedShapeId: id ? null : get().selectedShapeId });
+    set({
+      selectedNodeId: id,
+      selectedShapeId: id ? null : get().selectedShapeId,
+      selectedFrameId: id ? null : get().selectedFrameId,
+    });
   },
 
   snapshot: () => {
-    const { nodes, edges, shapes, history } = get();
+    const { nodes, edges, shapes, frames, history } = get();
     const entry: HistoryEntry = {
       nodes: deepClone(nodes),
       edges: deepClone(edges),
       shapes: deepClone(shapes),
+      frames: deepClone(frames),
     };
     const newHistory = [...history, entry].slice(-MAX_HISTORY);
     set({ history: newHistory, future: [] });
   },
 
   undo: () => {
-    const { history, nodes, edges, shapes, future } = get();
+    const { history, nodes, edges, shapes, frames, future } = get();
     if (history.length === 0) return;
     const prev = history[history.length - 1];
     const newFuture: HistoryEntry[] = [
-      { nodes: deepClone(nodes), edges: deepClone(edges), shapes: deepClone(shapes) },
+      { nodes: deepClone(nodes), edges: deepClone(edges), shapes: deepClone(shapes), frames: deepClone(frames) },
       ...future,
     ];
     set({
       nodes: prev.nodes,
       edges: prev.edges,
       shapes: prev.shapes,
+      frames: prev.frames,
       history: history.slice(0, -1),
       future: newFuture,
       selectedNodeId: null,
       selectedShapeId: null,
+      selectedFrameId: null,
     });
   },
 
   redo: () => {
-    const { future, nodes, edges, shapes, history } = get();
+    const { future, nodes, edges, shapes, frames, history } = get();
     if (future.length === 0) return;
     const next = future[0];
     const newHistory: HistoryEntry[] = [
       ...history,
-      { nodes: deepClone(nodes), edges: deepClone(edges), shapes: deepClone(shapes) },
+      { nodes: deepClone(nodes), edges: deepClone(edges), shapes: deepClone(shapes), frames: deepClone(frames) },
     ];
     set({
       nodes: next.nodes,
       edges: next.edges,
       shapes: next.shapes,
+      frames: next.frames,
       history: newHistory,
       future: future.slice(1),
       selectedNodeId: null,
       selectedShapeId: null,
+      selectedFrameId: null,
     });
   },
 
@@ -437,26 +560,29 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
   loadProject: (project) => {
     const shapes = project.shapes ?? [];
+    const frames = project.frames ?? [];
     const documentContent = project.documentContent ?? '';
     set({
       nodes: project.nodes,
       edges: project.edges,
       shapes,
+      frames,
       documentContent,
       projectName: project.name,
       selectedNodeId: null,
       selectedShapeId: null,
+      selectedFrameId: null,
       history: [],
       future: [],
       validationIssues: [],
       showValidation: false,
-      savedSnapshot: snapshotKey(project.nodes, project.edges, shapes, documentContent),
+      savedSnapshot: snapshotKey(project.nodes, project.edges, shapes, frames, documentContent),
     });
   },
 
   markSaved: () => {
-    const { nodes, edges, shapes, documentContent } = get();
-    set({ savedSnapshot: snapshotKey(nodes, edges, shapes, documentContent) });
+    const { nodes, edges, shapes, frames, documentContent } = get();
+    set({ savedSnapshot: snapshotKey(nodes, edges, shapes, frames, documentContent) });
   },
 
   clearCanvas: () => {
@@ -465,21 +591,24 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       nodes: [],
       edges: [],
       shapes: [],
+      frames: [],
       selectedNodeId: null,
       selectedShapeId: null,
+      selectedFrameId: null,
       validationIssues: [],
       showValidation: false,
     });
   },
 
   getProject: () => {
-    const { nodes, edges, shapes, documentContent, projectName } = get();
+    const { nodes, edges, shapes, frames, documentContent, projectName } = get();
     return {
       id: uuidv4(),
       name: projectName,
       nodes,
       edges,
       shapes,
+      frames,
       documentContent,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
