@@ -115,9 +115,32 @@ export default function ArchitectureCanvas() {
         screenToFlowPosition: (pos: { x: number; y: number }) => { x: number; y: number };
       }).screenToFlowPosition({ x: event.clientX, y: event.clientY });
 
-      addNode(type, position);
+      const id = addNode(type, position);
+
+      // Palette drops come through native HTML5 DnD, which never touches React
+      // Flow's own drag mechanism — so run the same frame detection
+      // onNodeDragStop does, against the drop point. `position` is already
+      // flow-absolute and the node has no parent yet, so it needs no
+      // parent-relative conversion before the test.
+      const dragged: DraggedBox = {
+        id,
+        left: position.x,
+        top: position.y,
+        width: NODE_WIDTH,
+        height: NODE_HEIGHT,
+      };
+      const frameBoxes: FrameBox[] = frames.map((f) => {
+        const fRfNode = rfInstance.getNode(f.id);
+        const fAbs = fRfNode?.positionAbsolute ?? f.position;
+        return { id: f.id, parentId: f.parentNode ?? null, left: fAbs.x, top: fAbs.y, width: f.data.width, height: f.data.height };
+      });
+
+      const targetId = findContainingFrame(dragged, frameBoxes);
+      if (targetId === null) return;
+      const targetFrame = frameBoxes.find((f) => f.id === targetId)!;
+      reparentNode(id, targetId, toRelative(position, { x: targetFrame.left, y: targetFrame.top }));
     },
-    [rfInstance, addNode]
+    [rfInstance, addNode, frames, reparentNode]
   );
 
   const onDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
