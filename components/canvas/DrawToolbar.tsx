@@ -1,6 +1,6 @@
 'use client';
 
-import { MousePointer2, Square, Circle, MoveUpRight, Slash, Pencil, Type } from 'lucide-react';
+import { MousePointer2, Square, Circle, MoveUpRight, Slash, Pencil, Type, Frame } from 'lucide-react';
 import type { ToolId } from '@/types';
 import { useCanvasStore } from '@/store/useCanvasStore';
 
@@ -12,6 +12,7 @@ const TOOLS: { id: ToolId; label: string; Icon: typeof Square }[] = [
   { id: 'line', label: 'Line (L)', Icon: Slash },
   { id: 'pencil', label: 'Pencil (D)', Icon: Pencil },
   { id: 'text', label: 'Text (T)', Icon: Type },
+  { id: 'frame', label: 'Frame (F)', Icon: Frame },
 ];
 
 export default function DrawToolbar() {
