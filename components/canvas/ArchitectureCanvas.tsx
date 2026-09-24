@@ -18,12 +18,15 @@ import type { NodeType, ShapeNode as ShapeNodeType, ToolId } from '@/types';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import CustomNode, { NODE_WIDTH, NODE_HEIGHT } from '@/components/nodes/CustomNode';
 import ShapeNode from '@/components/nodes/ShapeNode';
+import FrameNode, { FRAME_COLOR_PRESETS } from '@/components/nodes/FrameNode';
 import DrawToolbar from '@/components/canvas/DrawToolbar';
 import { NODE_CONFIG } from '@/components/nodes/nodeConfig';
 import { ContextMenu, type ContextMenuItem } from '@/components/common/ContextMenu';
 import { computeSnap, type SnapBox } from '@/components/canvas/snapping';
 
 const MIN_DRAW_SIZE = 4;
+const DEFAULT_FRAME_WIDTH = 240;
+const DEFAULT_FRAME_HEIGHT = 160;
 
 interface DrawState {
   tool: ToolId;
@@ -55,15 +58,17 @@ export default function ArchitectureCanvas() {
   const [drawPreview, setDrawPreview] = useState<DrawState | null>(null);
   const drawStateRef = useRef<DrawState | null>(null);
   // useMemo prevents a new object reference on every Fast Refresh / hot reload
-  const nodeTypes = useMemo(() => ({ custom: CustomNode, shape: ShapeNode }), []);
+  const nodeTypes = useMemo(() => ({ custom: CustomNode, shape: ShapeNode, frame: FrameNode }), []);
 
   const {
     nodes,
     edges,
     shapes,
+    frames,
     onNodesChange,
     onEdgesChange,
     onShapesChange,
+    onFramesChange,
     onConnect,
     addNode,
     setSelectedNode,
@@ -81,6 +86,11 @@ export default function ArchitectureCanvas() {
     setSelectedShape,
     addShape,
     deleteShape,
+    selectedFrameId,
+    setSelectedFrame,
+    addFrame,
+    deleteFrame,
+    duplicateFrame,
   } = useCanvasStore();
 
   const onDrop = useCallback(
@@ -151,9 +161,21 @@ export default function ArchitectureCanvas() {
       const w = Math.abs(end.x - start.x), h = Math.abs(end.y - start.y);
       if (w < MIN_DRAW_SIZE || h < MIN_DRAW_SIZE) return;
       addShape({ kind: tool, position: { x: minX, y: minY }, width: w, height: h, stroke: strokeColor, fill: 'transparent' });
+    } else if (tool === 'frame') {
+      const end = points[points.length - 1] ?? start;
+      const minX = Math.min(start.x, end.x), minY = Math.min(start.y, end.y);
+      const w = Math.abs(end.x - start.x), h = Math.abs(end.y - start.y);
+      const isClick = w < MIN_DRAW_SIZE && h < MIN_DRAW_SIZE;
+      addFrame({
+        position: { x: minX, y: minY },
+        width: isClick ? DEFAULT_FRAME_WIDTH : w,
+        height: isClick ? DEFAULT_FRAME_HEIGHT : h,
+        title: 'Frame',
+        color: FRAME_COLOR_PRESETS[0],
+      });
     }
     setActiveTool('select');
-  }, [addShape, setActiveTool, strokeColor]);
+  }, [addShape, addFrame, setActiveTool, strokeColor]);
 
   const onDrawMouseMoveRef = useRef<(e: MouseEvent) => void>();
   const onDrawMouseUpRef = useRef<(e: MouseEvent) => void>();
@@ -212,7 +234,7 @@ export default function ArchitectureCanvas() {
     return {
       id: '__draw-preview__', type: 'shape', position: { x: minX, y: minY },
       data: {
-        kind: tool === 'rectangle' || tool === 'ellipse' ? tool : (tool as 'line' | 'arrow'),
+        kind: tool === 'ellipse' ? 'ellipse' : tool === 'rectangle' || tool === 'frame' ? 'rectangle' : (tool as 'line' | 'arrow'),
         stroke: strokeColor, fill: 'transparent',
         width: Math.max(w, MIN_DRAW_SIZE), height: Math.max(h, MIN_DRAW_SIZE),
         points: isLineLike ? [{ x: start.x - minX, y: start.y - minY }, { x: end.x - minX, y: end.y - minY }] : undefined,
@@ -224,12 +246,17 @@ export default function ArchitectureCanvas() {
   const nodeAndShapeIds = useMemo(() => {
     const nodeIds = new Set(nodes.map((n) => n.id));
     const shapeIds = new Set(shapes.map((s) => s.id));
-    return { nodeIds, shapeIds };
-  }, [nodes, shapes]);
+    const frameIds = new Set(frames.map((f) => f.id));
+    return { nodeIds, shapeIds, frameIds };
+  }, [nodes, shapes, frames]);
 
   const handleCombinedNodesChange = useCallback((changes: NodeChange[]) => {
     const nodeChanges = changes.filter((c) => 'id' in c && nodeAndShapeIds.nodeIds.has(c.id));
     const shapeChanges = changes.filter((c) => 'id' in c && nodeAndShapeIds.shapeIds.has(c.id));
+    const frameChangesAll = changes.filter((c) => 'id' in c && nodeAndShapeIds.frameIds.has(c.id));
+    const frameRemovals = frameChangesAll.filter((c) => c.type === 'remove');
+    const frameChanges = frameChangesAll.filter((c) => c.type !== 'remove');
+    frameRemovals.forEach((c) => deleteFrame((c as { id: string }).id));
 
     let sawDrag = false;
     for (const change of nodeChanges) {
@@ -251,7 +278,8 @@ export default function ArchitectureCanvas() {
 
     if (nodeChanges.length) onNodesChange(nodeChanges);
     if (shapeChanges.length) onShapesChange(shapeChanges);
-  }, [nodeAndShapeIds, onNodesChange, onShapesChange, nodes, guides]);
+    if (frameChanges.length) onFramesChange(frameChanges);
+  }, [nodeAndShapeIds, onNodesChange, onShapesChange, onFramesChange, deleteFrame, nodes, guides]);
 
   // Highlight the chain connected to the hovered node; dim everything else.
   const connectedIds = useMemo(() => {
@@ -334,9 +362,30 @@ export default function ArchitectureCanvas() {
     [shapes, selectedShapeId]
   );
 
+  const framesForDisplay = useMemo(
+    () => frames.map((f) => ({ ...f, selected: f.id === selectedFrameId })),
+    [frames, selectedFrameId]
+  );
+
+  // React Flow requires a parent node to appear before its children in the
+  // nodes array; sort by nesting depth so that holds for nested frames too.
+  const orderedFrames = useMemo(() => {
+    const byId = new Map(framesForDisplay.map((f) => [f.id, f]));
+    const depthOf = (id: string): number => {
+      let depth = 0;
+      let cursor = byId.get(id)?.parentNode;
+      while (cursor) {
+        depth++;
+        cursor = byId.get(cursor)?.parentNode;
+      }
+      return depth;
+    };
+    return [...framesForDisplay].sort((a, b) => depthOf(a.id) - depthOf(b.id));
+  }, [framesForDisplay]);
+
   const allNodes = useMemo(
-    () => [...displayNodes, ...shapesForDisplay, ...(drawPreviewNode ? [drawPreviewNode] : [])],
-    [displayNodes, shapesForDisplay, drawPreviewNode]
+    () => [...orderedFrames, ...displayNodes, ...shapesForDisplay, ...(drawPreviewNode ? [drawPreviewNode] : [])],
+    [orderedFrames, displayNodes, shapesForDisplay, drawPreviewNode]
   );
 
   const isDrawing = activeTool !== 'select';
@@ -379,7 +428,7 @@ export default function ArchitectureCanvas() {
         onDrop={onDrop}
         onDragOver={onDragOver}
         onMouseDown={onCanvasMouseDown}
-        onPaneClick={() => { setSelectedNode(null); setSelectedShape(null); setMenu(null); }}
+        onPaneClick={() => { setSelectedNode(null); setSelectedShape(null); setSelectedFrame(null); setMenu(null); }}
         onNodeDragStart={() => snapshot()}
         onNodeDragStop={onNodeDragStop}
         onNodeMouseEnter={(_, node) => setHoveredId(node.id)}
