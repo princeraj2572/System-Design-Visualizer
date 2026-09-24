@@ -46,7 +46,8 @@ const defaultEdgeOptions = {
 
 type CanvasMenu =
   | { kind: 'pane'; x: number; y: number; flowX: number; flowY: number }
-  | { kind: 'node'; x: number; y: number; nodeId: string };
+  | { kind: 'node'; x: number; y: number; nodeId: string }
+  | { kind: 'frame'; x: number; y: number; frameId: string };
 
 export default function ArchitectureCanvas() {
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
@@ -384,9 +385,14 @@ export default function ArchitectureCanvas() {
 
   const onNodeContextMenu = useCallback((event: ReactMouseEvent, node: Node) => {
     event.preventDefault();
+    if (node.type === 'frame') {
+      setSelectedFrame(node.id);
+      setMenu({ kind: 'frame', x: event.clientX, y: event.clientY, frameId: node.id });
+      return;
+    }
     setSelectedNode(node.id);
     setMenu({ kind: 'node', x: event.clientX, y: event.clientY, nodeId: node.id });
-  }, [setSelectedNode]);
+  }, [setSelectedNode, setSelectedFrame]);
 
   const onPaneContextMenu = useCallback((event: ReactMouseEvent | MouseEvent) => {
     event.preventDefault();
@@ -407,6 +413,13 @@ export default function ArchitectureCanvas() {
         { label: 'Delete', icon: <Trash2 size={13}/>, danger: true, onClick: () => deleteNode(id) },
       ];
     }
+    if (menu.kind === 'frame') {
+      const id = menu.frameId;
+      return [
+        { label: 'Duplicate', icon: <Copy size={13}/>, onClick: () => duplicateFrame(id) },
+        { label: 'Delete', icon: <Trash2 size={13}/>, danger: true, onClick: () => deleteFrame(id) },
+      ];
+    }
     return [
       {
         label: 'Paste here',
@@ -416,7 +429,7 @@ export default function ArchitectureCanvas() {
       },
       { label: 'Auto Layout', icon: <LayoutGrid size={13}/>, onClick: () => autoLayout() },
     ];
-  }, [menu, duplicateNode, copyNode, deleteNode, clipboard, pasteNode, autoLayout]);
+  }, [menu, duplicateNode, copyNode, deleteNode, duplicateFrame, deleteFrame, clipboard, pasteNode, autoLayout]);
 
   const shapesForDisplay = useMemo(
     () => shapes.map((s) => ({ ...s, selected: s.id === selectedShapeId })),
