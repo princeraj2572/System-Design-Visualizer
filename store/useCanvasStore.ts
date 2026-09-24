@@ -435,6 +435,13 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       position: position ?? { x: clipboard.position.x + 48, y: clipboard.position.y + 48 },
       selected: false,
       data: { ...clipboard.data },
+      // An explicit position ("Paste here") is flow-absolute — it comes from the
+      // pane context menu's click point. Carrying over the clipboard's
+      // parentNode would make React Flow read that absolute value as relative to
+      // a frame the user never clicked, dropping the paste in the wrong place
+      // inside whatever frame the ORIGINAL node was copied from. So an explicit
+      // paste point always produces a fresh top-level node.
+      ...(position ? { parentNode: undefined, extent: undefined } : {}),
     };
     set((state) => ({ nodes: [...state.nodes, clone], selectedNodeId: clone.id }));
   },
