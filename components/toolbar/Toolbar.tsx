@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useCallback, useEffect, useState } from 'react';
-import { useCanvasStore } from '@/store/useCanvasStore';
+import { useCanvasStore, snapshotKey } from '@/store/useCanvasStore';
 import {
   exportToJSON,
   exportToPNG,
@@ -80,7 +80,7 @@ export default function Toolbar() {
     projectName, setProjectName, getProject, loadProject, clearCanvas,
     undo, redo, history, future, validate, dismissValidation,
     validationIssues, showValidation, theme, toggleTheme,
-    nodes, edges, shapes, documentContent, savedSnapshot, markSaved,
+    nodes, edges, shapes, frames, documentContent, savedSnapshot, markSaved,
     selectedNodeId, duplicateNode, nudgeNode, copyNode, pasteNode, autoLayout,
     viewMode, setViewMode,
   } = useCanvasStore();
@@ -90,7 +90,7 @@ export default function Toolbar() {
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  const isDirty = JSON.stringify({ nodes, edges, shapes, documentContent }) !== savedSnapshot;
+  const isDirty = snapshotKey(nodes, edges, shapes, frames, documentContent) !== savedSnapshot;
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
 
