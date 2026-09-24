@@ -132,7 +132,22 @@ export interface ShapeData {
 
 export type ShapeNode = Node<ShapeData>;
 
-export type ToolId = 'select' | 'rectangle' | 'ellipse' | 'line' | 'arrow' | 'pencil' | 'text';
+// Resizable, nestable containers ("VPC", "subnet", "backend cluster", etc.)
+// that architecture nodes — and other frames — can be dropped into. A
+// separate domain from ArchNode/NodeData, same as ShapeNode: frames don't
+// participate in system-design validation, connection rules, or the node
+// palette. Containment is React Flow's native parentNode/extent mechanism,
+// applied to nodes whose id appears in this array's elements.
+export interface FrameData {
+  title: string;
+  color: string;
+  width: number;
+  height: number;
+}
+
+export type FrameNode = Node<FrameData>;
+
+export type ToolId = 'select' | 'rectangle' | 'ellipse' | 'line' | 'arrow' | 'pencil' | 'text' | 'frame';
 
 /** How much of the main content area the notes document vs. the diagram
  * canvas gets, matching Eraser.io's Document/Both/Canvas toggle. */
@@ -144,6 +159,7 @@ export interface Project {
   nodes: ArchNode[];
   edges: ArchEdge[];
   shapes: ShapeNode[];
+  frames: FrameNode[];
   documentContent: string;
   createdAt: string;
   updatedAt: string;
