@@ -52,7 +52,7 @@ describe('updateFrameData', () => {
 });
 
 describe('reparentNode', () => {
-  it('sets parentNode, extent, and the given position on a node', () => {
+  it('sets parentNode and the given position on a node, without an extent', () => {
     const frameId = useCanvasStore.getState().addFrame({ position: { x: 0, y: 0 }, width: 300, height: 300, title: 'F', color: '#000' });
     useCanvasStore.getState().addNode('database', { x: 500, y: 500 });
     const nodeId = useCanvasStore.getState().nodes[0].id;
@@ -61,7 +61,9 @@ describe('reparentNode', () => {
 
     const node = useCanvasStore.getState().nodes.find((n) => n.id === nodeId);
     expect(node?.parentNode).toBe(frameId);
-    expect(node?.extent).toBe('parent');
+    // extent is intentionally left unset — `extent: 'parent'` would clamp the
+    // node inside the frame and make dragging it back out impossible.
+    expect(node?.extent).toBeUndefined();
     expect(node?.position).toEqual({ x: 15, y: 15 });
   });
 

@@ -288,10 +288,18 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   reparentNode: (id, parentId, position) => {
     get().snapshot();
     set((state) => {
+      // Deliberately no `extent: 'parent'`. React Flow hard-clamps a child's
+      // position inside its parent's bounds on every drag when extent is
+      // 'parent' (and captures it at drag start, so it can't be lifted
+      // mid-drag), which makes dragging an item back out of a frame to
+      // un-group it physically impossible. `parentNode` alone still gives
+      // nesting, move-together, and positionAbsolute; we only lose automatic
+      // visual clipping. Always written as undefined so projects saved before
+      // this fix get their stale extent cleared on the next reparent.
       const patch = {
         position,
         parentNode: parentId ?? undefined,
-        extent: (parentId ? 'parent' : undefined) as 'parent' | undefined,
+        extent: undefined as 'parent' | undefined,
       };
       if (state.nodes.some((n) => n.id === id)) {
         return { nodes: state.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)) };
