@@ -99,7 +99,9 @@ interface CanvasStore {
   deleteShape: (id: string) => void;
 
   // Node actions
-  addNode: (type: NodeType, position: { x: number; y: number }) => void;
+  /** Returns the new node's id so callers can follow up on it (e.g. drop it
+   *  straight into a frame). */
+  addNode: (type: NodeType, position: { x: number; y: number }) => string;
   updateNodeData: (id: string, data: Partial<NodeData>) => void;
   deleteNode: (id: string) => void;
   deleteEdge: (id: string) => void;
@@ -350,8 +352,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   addNode: (type, position) => {
     get().snapshot();
     const config = NODE_CONFIG[type];
+    const id = uuidv4();
     const newNode: ArchNode = {
-      id: uuidv4(),
+      id,
       type: 'custom',
       position,
       data: {
@@ -366,6 +369,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       nodes: [...state.nodes, newNode],
       recentTypes: [type, ...state.recentTypes.filter((t) => t !== type)].slice(0, 5),
     }));
+    return id;
   },
 
   updateNodeData: (id, data) => {
