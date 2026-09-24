@@ -133,7 +133,10 @@ interface CanvasStore {
   dismissValidation: () => void;
 }
 
-function snapshotKey(nodes: ArchNode[], edges: ArchEdge[], shapes: ShapeNode[], frames: FrameNode[], documentContent: string): string {
+/** The canonical serialization used for the saved/dirty comparison. Exported so
+ *  consumers (e.g. the toolbar's unsaved-changes dot) can't drift out of sync
+ *  with the shape stored in `savedSnapshot`. */
+export function snapshotKey(nodes: ArchNode[], edges: ArchEdge[], shapes: ShapeNode[], frames: FrameNode[], documentContent: string): string {
   return JSON.stringify({ nodes, edges, shapes, frames, documentContent });
 }
 
