@@ -136,8 +136,9 @@ export type ShapeNode = Node<ShapeData>;
 // that architecture nodes — and other frames — can be dropped into. A
 // separate domain from ArchNode/NodeData, same as ShapeNode: frames don't
 // participate in system-design validation, connection rules, or the node
-// palette. Containment is React Flow's native parentNode/extent mechanism,
-// applied to nodes whose id appears in this array's elements.
+// palette. Containment is React Flow's native parentNode mechanism, applied
+// to nodes whose id appears in this array's elements (extent: 'parent' was
+// dropped — it made dragging a child back out of its frame impossible).
 export interface FrameData {
   title: string;
   color: string;
